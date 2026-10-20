@@ -1,0 +1,12 @@
+# Problem
+Managing pocket Wi-Fi rentals involves fragmented workflows across device availability, customer bookings, payment reconciliation, and technical troubleshooting; without an integrated, alert-driven system, operations suffer from double-booking risks, untracked device statuses, delayed customer issue resolution, and a lack of timely operational visibility across team communication channels.
+
+# Solution
+JavaMifi Ops is a centralized, lightweight mini-ERP tailored for travel Wi-Fi operations that unifies inventory status tracking, rental booking lifecycle with automated payment gateway integration (Midtrans/Xendit), a post-rental issue tracking system, and an event-driven n8n workflow integration that dispatches automated Telegram alerts for incidents, payment milestones, return reminders, and daily executive summaries for technical assessment readiness.
+
+# Features
+1. **Inventory Management Module**: Manages pocket Wi-Fi hardware assets with details (Serial Number/IMEI, Model, Battery Health, Daily Rental Rate) and real-time status transitions (`Available`, `Rented`, `Maintenance`, `Lost`) to prevent double-booking and maintain fleet readiness.
+2. **Rental & Booking Module (with Payment Gateway)**: Facilitates customer rental creation (destination, rental date range, auto-calculated pricing, customer info), device assignment, and payment transaction processing with Midtrans/Xendit (mock/sandbox QRIS, VA, or Credit Card with webhook callbacks for statuses: `Pending`, `Paid`, `Cancelled`, `Completed`).
+3. **Issue Tracker & Maintenance Module**: Enables customers and ops staff to log device incidents (e.g., No Signal, Battery Failure, Physical Damage, Lost Unit) linked to active rentals, supporting ticket lifecycles (`Open`, `In Progress`, `Resolved`, `Closed`) and triggering automated device status updates to `Maintenance`.
+4. **Operations Monitoring Dashboard**: Provides ops staff with real-time operational metrics, including device utilization (Available vs. Rented vs. Maintenance), active rental orders, pending payment counts, and open ticket counters.
+5. **Workflow & Notification Automation (n8n & Telegram)**: Emits event-driven webhooks and scheduled cron triggers to an n8n workflow pipeline that sends real-time Telegram notifications for: (a) new reported issues, (b) ticket escalations for high-priority or unresolved incidents, (c) payment confirmations, (d) upcoming return reminders for active rentals, and (e) daily operational summary digests.
