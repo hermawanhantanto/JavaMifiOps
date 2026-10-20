@@ -1,8 +1,12 @@
 import { prisma } from '../../config/prisma';
-import { ConflictError, NotFoundError } from '../../common/errors';
-import type { AddDeviceInput, ListDeviceQuery } from './device.validator';
-import { buildDeviceWhereInput, buildDeviceSelect } from './device.helper';
-import type { Role } from '../../generated/prisma/enums.js';
+import { BadRequestError, ConflictError, NotFoundError } from '../../common/errors';
+import type { AddDeviceInput, ListDeviceQuery, UpdateDeviceInput } from './device.dto.js';
+import {
+  buildDeviceWhereInput,
+  buildDeviceSelect,
+  buildDeviceConflictWhereInput,
+} from './device.helper';
+import { DeviceStatus, Role } from '../../generated/prisma/enums.js';
 
 export class DeviceService {
   /**
@@ -10,21 +14,23 @@ export class DeviceService {
    * Performs conflict detection on unique hardware identifiers (serialNumber, imei).
    */
   async addDevice(input: AddDeviceInput) {
-    const existingDevice = await prisma.device.findFirst({
-      where: {
-        OR: [
-          { serialNumber: input.serialNumber },
-          { imei: input.imei },
-        ],
-      },
+    const conflictWhere = buildDeviceConflictWhereInput({
+      serialNumber: input.serialNumber,
+      imei: input.imei,
     });
 
-    if (existingDevice && existingDevice.serialNumber === input.serialNumber) {
-      throw new ConflictError('Device with this Serial Number already exists');
-    }
+    if (conflictWhere) {
+      const existingDevice = await prisma.device.findFirst({
+        where: conflictWhere,
+      });
 
-    if (existingDevice && existingDevice.imei === input.imei) {
-      throw new ConflictError('Device with this IMEI already exists');
+      if (existingDevice && existingDevice.serialNumber === input.serialNumber) {
+        throw new ConflictError('Device with this Serial Number already exists');
+      }
+
+      if (existingDevice && existingDevice.imei === input.imei) {
+        throw new ConflictError('Device with this IMEI already exists');
+      }
     }
 
     const device = await prisma.device.create({
@@ -94,6 +100,58 @@ export class DeviceService {
         totalPages: Math.ceil(total / limit),
       },
     };
+  }
+
+  /**
+   * Updates an existing hardware device.
+   * Enforces business rules:
+   * - Prevents transitioning a RENTED device to AVAILABLE directly.
+   * - Validates hardware identifier uniqueness if serialNumber or imei is modified.
+   */
+  async updateDevice(id: string, input: UpdateDeviceInput) {
+    const existingDevice = await prisma.device.findUnique({
+      where: { id },
+    });
+
+    if (!existingDevice) {
+      throw new NotFoundError('Device not found');
+    }
+
+    if (existingDevice.status === DeviceStatus.RENTED && input.status === DeviceStatus.AVAILABLE) {
+      throw new BadRequestError('Cannot set status to AVAILABLE while device is actively rented');
+    }
+
+    const conflictWhere = buildDeviceConflictWhereInput(
+      {
+        serialNumber: input.serialNumber,
+        imei: input.imei,
+      },
+      id
+    );
+
+    if (conflictWhere) {
+      const conflictDevice = await prisma.device.findFirst({
+        where: conflictWhere,
+      });
+
+      if (conflictDevice && conflictDevice.serialNumber === input.serialNumber) {
+        throw new ConflictError('Device with this Serial Number already exists');
+      }
+
+      if (conflictDevice && conflictDevice.imei === input.imei) {
+        throw new ConflictError('Device with this IMEI already exists');
+      }
+    }
+
+    const select = buildDeviceSelect(Role.ADMIN);
+
+    const updatedDevice = await prisma.device.update({
+      where: { id },
+      data: input,
+      select,
+    });
+
+    return updatedDevice;
   }
 }
 

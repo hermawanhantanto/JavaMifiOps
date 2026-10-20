@@ -3,6 +3,7 @@ import {
   addDeviceSchema,
   getDeviceByIdSchema,
   listDeviceQuerySchema,
+  updateDeviceSchema,
 } from './device.validator';
 import { deviceService } from './device.service';
 import { sendSuccess } from '../../common/response';
@@ -43,4 +44,17 @@ export const listDevicesHandler = async (req: Request, res: Response) => {
   const result = await deviceService.listDevices(validatedQuery, req.user?.role);
 
   return sendSuccess(res, 'Devices retrieved successfully', result, 200);
+};
+
+/**
+ * Updates an existing device by ID.
+ * Restricted to administrators.
+ */
+export const updateDeviceHandler = async (req: Request, res: Response) => {
+  const { id } = getDeviceByIdSchema.parse(req.params);
+  const validatedData = updateDeviceSchema.parse(req.body);
+
+  const device = await deviceService.updateDevice(id, validatedData);
+
+  return sendSuccess(res, 'Device updated successfully', { device }, 200);
 };

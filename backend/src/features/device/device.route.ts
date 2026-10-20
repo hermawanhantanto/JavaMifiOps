@@ -3,6 +3,7 @@ import {
   addDeviceHandler,
   getDeviceByIdHandler,
   listDevicesHandler,
+  updateDeviceHandler,
 } from './device.handler';
 import { authenticateToken, requireRole } from '../../middlewares/auth.middleware';
 
@@ -27,5 +28,12 @@ deviceRouter.post('/add-device', authenticateToken, requireRole('ADMIN'), addDev
  * Accessible to any authenticated user (Admin or Customer).
  */
 deviceRouter.get('/:id', authenticateToken, getDeviceByIdHandler);
+
+/**
+ * Endpoint: PUT /api/device/:id
+ * Updates an existing device by its ID.
+ * Allows only users with the ADMIN role.
+ */
+deviceRouter.put('/:id', authenticateToken, requireRole('ADMIN'), updateDeviceHandler);
 
 export default deviceRouter;
