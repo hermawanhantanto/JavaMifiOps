@@ -1,8 +1,8 @@
 import type { Request, Response, CookieOptions } from 'express';
 import { signupSchema, signinSchema } from './auth.validator';
 import { authService } from './auth.service';
-import { sendSuccess } from '../common/response';
-import { env } from '../config/env';
+import { sendSuccess } from '../../common/response';
+import { env } from '../../config/env';
 
 export const AUTH_COOKIE_NAME = 'token';
 

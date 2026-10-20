@@ -1,8 +1,8 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import { prisma } from '../config/prisma';
-import { env } from '../config/env';
-import { ConflictError, UnauthorizedError } from '../common/errors';
+import { prisma } from '../../config/prisma';
+import { env } from '../../config/env';
+import { ConflictError, UnauthorizedError } from '../../common/errors';
 import type { SignupInput, SigninInput } from './auth.validator';
 
 export class AuthService {

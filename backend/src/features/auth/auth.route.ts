@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { signupHandler, signinHandler, signoutHandler } from './auth.handler';
-import { signinRateLimiter } from '../middlewares/rate-limit.middleware';
+import { signinRateLimiter } from '../../middlewares/rate-limit.middleware';
 
 const authRouter: Router = Router();
 

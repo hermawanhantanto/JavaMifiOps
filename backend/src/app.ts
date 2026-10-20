@@ -2,7 +2,7 @@ import express, { type Express } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
-import authRouter from './auth/auth.route';
+import authRouter from './features/auth/auth.route';
 import { errorHandler } from './middlewares/error.middleware';
 import { env } from './config/env';
 
