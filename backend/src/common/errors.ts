@@ -28,3 +28,9 @@ export class NotFoundError extends AppError {
     super(message, 404);
   }
 }
+
+export class UnauthorizedError extends AppError {
+  constructor(message: string = 'Email or password wrong', data?: unknown) {
+    super(message, 401, data);
+  }
+}

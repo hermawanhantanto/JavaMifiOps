@@ -1,7 +1,9 @@
 import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
 import { prisma } from '../config/prisma';
-import { ConflictError } from '../common/errors';
-import type { SignupInput } from './auth.validator';
+import { env } from '../config/env';
+import { ConflictError, UnauthorizedError } from '../common/errors';
+import type { SignupInput, SigninInput } from './auth.validator';
 
 export class AuthService {
   /**
@@ -42,6 +44,56 @@ export class AuthService {
     });
 
     return user;
+  }
+
+  /**
+   * Authenticates user credentials.
+   * Returns sanitized user information and generated JWT token.
+   * Intentionally uses generic error message to prevent user enumeration / brute force guessing.
+   */
+  async signin(input: SigninInput) {
+    // 1. Verify user existence
+    const user = await prisma.user.findUnique({
+      where: { email: input.email },
+    });
+
+    if (!user) {
+      throw new UnauthorizedError('Email or password wrong');
+    }
+
+    // 2. Verify password match
+    const isPasswordValid = await bcrypt.compare(input.password, user.passwordHash);
+
+    if (!isPasswordValid) {
+      throw new UnauthorizedError('Email or password wrong');
+    }
+
+    // 3. Generate JWT token using validated environment configuration
+    const token = jwt.sign(
+      {
+        userId: user.id,
+        email: user.email,
+        role: user.role,
+      },
+      env.JWT_SECRET,
+      {
+        expiresIn: env.JWT_EXPIRES_IN as jwt.SignOptions['expiresIn'],
+      }
+    );
+
+    // 4. Return sanitized user data and token
+    return {
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        phone: user.phone,
+        role: user.role,
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt,
+      },
+      token,
+    };
   }
 }
 

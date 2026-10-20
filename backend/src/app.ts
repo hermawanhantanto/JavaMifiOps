@@ -1,9 +1,10 @@
-import express, { type Express, type Request, type Response } from 'express';
+import express, { type Express } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
+import cookieParser from 'cookie-parser';
 import authRouter from './auth/auth.route';
 import { errorHandler } from './middlewares/error.middleware';
-import { sendSuccess } from './common/response';
+import { env } from './config/env';
 
 export const createApp = (): Express => {
   const app: Express = express();
@@ -11,19 +12,13 @@ export const createApp = (): Express => {
   app.use(helmet());
   app.use(
     cors({
-      origin: process.env.CLIENT_URL,
+      origin: env.CLIENT_URL,
       credentials: true,
     })
   );
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
-
-  // Health check endpoint
-  app.get('/health', (_req: Request, res: Response) => {
-    return sendSuccess(res, 'JavaMifi Backend is running', {
-      timestamp: new Date().toISOString(),
-    });
-  });
+  app.use(cookieParser());
 
   // Authentication routes
   app.use('/api/auth', authRouter);

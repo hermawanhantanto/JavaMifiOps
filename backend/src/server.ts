@@ -1,13 +1,10 @@
 import { createApp } from './app';
-import dotenv from 'dotenv';
+import { env } from './config/env';
 
-dotenv.config();
-
-const port = process.env.PORT || 5000;
 const app = createApp();
 
-const server = app.listen(port, () => {
-  console.log(`Server is running on port ${port}`);
+const server = app.listen(env.PORT, () => {
+  console.log(`Server is running on port ${env.PORT} in ${env.NODE_ENV} mode`);
 });
 
 const handleShutdown = (signal: string) => {

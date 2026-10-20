@@ -31,3 +31,16 @@ export const signupSchema = z
   });
 
 export type SignupInput = z.infer<typeof signupSchema>;
+
+export const signinSchema = z.object({
+  email: z
+    .string({ required_error: 'Email is required' })
+    .trim()
+    .email('Invalid email address')
+    .toLowerCase(),
+  password: z
+    .string({ required_error: 'Password is required' })
+    .min(1, 'Password is required'),
+});
+
+export type SigninInput = z.infer<typeof signinSchema>;
