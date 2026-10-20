@@ -53,3 +53,48 @@
 ### 6. Single Unambiguous Endpoint per Feature (No Redundant Route Aliases)
 - **Strict Endpoint Contracts**: Define strictly one route per resource/action (e.g., use `/api/auth/signin` only).
 - **No Duplicate Route Aliases**: Never register duplicate route aliases (such as providing both `/signin` and `/login`) unless explicitly demanded by legacy contract requirements.
+
+### 7. Clean Variable & Parameter Naming (No Underscore Prefixes)
+- **Standard Names Without Underscores**: Do not use leading underscore prefixes for Express handler parameters, middleware arguments, or catch blocks (e.g., use `req`, `res`, `next`, and `catch (error)` instead of `_req`, `_res`, `_next`, or `_error`).
+- **Consistency**: Keep parameter names standard and clean across all controllers, services, and middlewares, even when an argument is not actively read inside the function body.
+
+### 8. Flat Conditional Guard Statements (No Nested If-Blocks)
+- **Avoid Nested Ifs**: Avoid nesting `if` conditions when validating existing database resources, unique constraints, or conflict states.
+- **Flat Separate Checks**: Keep checks separate and un-nested:
+  ```typescript
+  // Preferred:
+  if (existingDevice && existingDevice.serialNumber === input.serialNumber) {
+    throw new ConflictError('Device with this Serial Number already exists');
+  }
+
+  if (existingDevice && existingDevice.imei === input.imei) {
+    throw new ConflictError('Device with this IMEI already exists');
+  }
+
+  // Avoid:
+  if (existingDevice) {
+    if (existingDevice.serialNumber === input.serialNumber) { ... }
+    throw new ConflictError(...);
+  }
+  ```
+
+### 9. Database-Level Projection (Never Fetch All & Map/Sanitize In-Memory)
+- **Push Projections to Database**: When restricting sensitive fields based on user roles (e.g., concealing `imei` and `serialNumber` from `CUSTOMER` roles), do not fetch all columns from the database and then iterate or map in memory with a post-query sanitization function.
+- **Prisma `select` by Role**: Build a Prisma `select` projection object based on role (e.g., via `buildDeviceSelect(role)`) so PostgreSQL only queries and transfers permissible columns across the wire, eliminating in-memory iteration overhead.
+
+### 10. Query Object Separation & Variable Pre-assignment
+- **Helper Separation**: Encapsulate query building logic (e.g., `where` filter objects and `select` projections) into dedicated feature helper files (e.g., `src/features/<feature>/<feature>.helper.ts`).
+- **Store in Variables First**: Store query options into clear, dedicated variables first before passing them to Prisma methods, rather than inlining complex helper invocations directly inside database calls:
+  ```typescript
+  // Preferred:
+  const where = buildDeviceWhereInput(query, role);
+  const select = buildDeviceSelect(role);
+  const device = await prisma.device.findUnique({ where: { id }, select });
+
+  // Avoid:
+  const device = await prisma.device.findUnique({ where: { id }, select: buildDeviceSelect(role) });
+  ```
+
+### 11. Snapshot Read Consistency with `prisma.$transaction` for Pagination
+- **Use `prisma.$transaction` for `findMany` + `count`**: For paginated queries that execute `findMany` alongside `count`, use `prisma.$transaction([findMany, count])` rather than `Promise.all([findMany, count])`.
+- **Why**: Guarantees database snapshot read isolation (`BEGIN ... COMMIT`) to prevent phantom record discrepancies between total count and returned items, while conserving connection pool resources by utilizing a single connection.
