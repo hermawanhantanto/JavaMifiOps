@@ -34,3 +34,9 @@ export class UnauthorizedError extends AppError {
     super(message, 401, data);
   }
 }
+
+export class ForbiddenError extends AppError {
+  constructor(message: string = 'Forbidden: Access denied', data?: unknown) {
+    super(message, 403, data);
+  }
+}

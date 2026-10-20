@@ -59,7 +59,7 @@ export const signinHandler = async (req: Request, res: Response) => {
  * Handles user logout (signout).
  * Clears the authentication token cookie and returns standardized success response.
  */
-export const signoutHandler = async (_req: Request, res: Response) => {
+export const signoutHandler = async (req: Request, res: Response) => {
   res.clearCookie(AUTH_COOKIE_NAME, CLEAR_COOKIE_OPTIONS);
   return sendSuccess(res, 'Logged out successfully', null, 200);
 };

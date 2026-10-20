@@ -5,9 +5,9 @@ import { sendError } from '../common/response';
 
 export const errorHandler = (
   err: unknown,
-  _req: Request,
+  req: Request,
   res: Response,
-  _next: NextFunction
+  next: NextFunction
 ) => {
   if (err instanceof ZodError) {
     const formattedErrors = err.issues.map((issue) => ({

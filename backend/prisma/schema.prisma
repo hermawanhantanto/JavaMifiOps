@@ -20,6 +20,13 @@ enum DeviceStatus {
   RETIRED
 }
 
+enum DeviceSpeed {
+  SPEED_4G_150MBPS
+  SPEED_4G_300MBPS
+  SPEED_5G_500MBPS
+  SPEED_5G_1GBPS
+}
+
 enum RentalStatus {
   PENDING_PAYMENT
   CONFIRMED
@@ -87,7 +94,7 @@ model Device {
   imei          String       @unique
   model         String
   batteryHealth Int          @default(100)
-  speed         String
+  speed         DeviceSpeed
   dailyRate     Decimal      @db.Decimal(12, 2)
   status        DeviceStatus @default(AVAILABLE)
   rentals       Rental[]

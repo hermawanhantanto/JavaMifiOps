@@ -3,6 +3,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
 import authRouter from './features/auth/auth.route';
+import deviceRouter from './features/device/device.route';
 import { errorHandler } from './middlewares/error.middleware';
 import { env } from './config/env';
 
@@ -22,6 +23,9 @@ export const createApp = (): Express => {
 
   // Authentication routes
   app.use('/api/auth', authRouter);
+
+  // Device inventory routes
+  app.use('/api/device', deviceRouter);
 
   // Global error handling middleware (Express 5 async error propagation)
   app.use(errorHandler);

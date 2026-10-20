@@ -11,7 +11,7 @@ export const signinRateLimiter = rateLimit({
   limit: 5, // Limit each IP to 5 requests per windowMs
   standardHeaders: 'draft-8', // Return standard RateLimit headers
   legacyHeaders: false, // Disable X-RateLimit-* headers
-  handler: (_req, res, _next, options) => {
+  handler: (req, res, next, options) => {
     return sendError(
       res,
       'Too many login attempts. Please try again after 15 minutes.',
