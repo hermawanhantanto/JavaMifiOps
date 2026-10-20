@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { signupHandler, signinHandler } from './auth.handler';
+import { signupHandler, signinHandler, signoutHandler } from './auth.handler';
 import { signinRateLimiter } from '../middlewares/rate-limit.middleware';
 
 const authRouter: Router = Router();
@@ -14,5 +14,11 @@ authRouter.post('/signup', signupHandler);
  * Rate limited to prevent brute-force attacks.
  */
 authRouter.post('/signin', signinRateLimiter, signinHandler);
+
+/**
+ * Endpoint: POST /api/auth/signout
+ * Clears the authentication token cookie.
+ */
+authRouter.post('/signout', signoutHandler);
 
 export default authRouter;

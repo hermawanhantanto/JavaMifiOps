@@ -14,6 +14,13 @@ export const AUTH_COOKIE_OPTIONS: CookieOptions = {
   path: '/',
 };
 
+export const CLEAR_COOKIE_OPTIONS: CookieOptions = {
+  httpOnly: true,
+  secure: env.NODE_ENV === 'production',
+  sameSite: env.NODE_ENV === 'production' ? 'strict' : 'lax',
+  path: '/',
+};
+
 /**
  * Auth Handler / Controller.
  * Responsible ONLY for processing request and response.
@@ -46,4 +53,13 @@ export const signinHandler = async (req: Request, res: Response) => {
 
   // 4. Output standardized response format: { status, message, data }
   return sendSuccess(res, 'Login successful', { user, token }, 200);
+};
+
+/**
+ * Handles user logout (signout).
+ * Clears the authentication token cookie and returns standardized success response.
+ */
+export const signoutHandler = async (_req: Request, res: Response) => {
+  res.clearCookie(AUTH_COOKIE_NAME, CLEAR_COOKIE_OPTIONS);
+  return sendSuccess(res, 'Logged out successfully', null, 200);
 };
