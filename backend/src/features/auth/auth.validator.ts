@@ -30,8 +30,6 @@ export const signupSchema = z
     path: ['confirm_password'],
   });
 
-export type SignupInput = z.infer<typeof signupSchema>;
-
 export const signinSchema = z.object({
   email: z
     .string({ required_error: 'Email is required' })
@@ -42,5 +40,3 @@ export const signinSchema = z.object({
     .string({ required_error: 'Password is required' })
     .min(1, 'Password is required'),
 });
-
-export type SigninInput = z.infer<typeof signinSchema>;

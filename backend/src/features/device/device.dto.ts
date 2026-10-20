@@ -1,4 +1,5 @@
 import type { z } from 'zod';
+import type { Device } from '../../generated/prisma/client.js';
 import type {
   addDeviceSchema,
   listDeviceQuerySchema,
@@ -21,4 +22,22 @@ export type GetDeviceByIdParams = z.infer<typeof getDeviceByIdSchema>;
 export interface DeviceConflictCheckParams {
   serialNumber?: string;
   imei?: string;
+}
+
+export type DeviceResponse = Device;
+
+export type CustomerDeviceResponse = Omit<Device, 'serialNumber' | 'imei'>;
+
+export type SingleDeviceResult = DeviceResponse | CustomerDeviceResponse;
+
+export interface PaginationMeta {
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
+export interface ListDevicesResult {
+  devices: SingleDeviceResult[];
+  pagination: PaginationMeta;
 }

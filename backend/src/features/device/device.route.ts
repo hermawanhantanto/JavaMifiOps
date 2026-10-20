@@ -4,6 +4,7 @@ import {
   getDeviceByIdHandler,
   listDevicesHandler,
   updateDeviceHandler,
+  deleteDeviceHandler,
 } from './device.handler';
 import { authenticateToken, requireRole } from '../../middlewares/auth.middleware';
 
@@ -35,5 +36,12 @@ deviceRouter.get('/:id', authenticateToken, getDeviceByIdHandler);
  * Allows only users with the ADMIN role.
  */
 deviceRouter.put('/:id', authenticateToken, requireRole('ADMIN'), updateDeviceHandler);
+
+/**
+ * Endpoint: DELETE /api/device/:id
+ * Deletes a brand-new device asset that has no rental or ticket history.
+ * Allows only users with the ADMIN role.
+ */
+deviceRouter.delete('/:id', authenticateToken, requireRole('ADMIN'), deleteDeviceHandler);
 
 export default deviceRouter;

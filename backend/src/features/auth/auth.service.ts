@@ -3,14 +3,14 @@ import jwt from 'jsonwebtoken';
 import { prisma } from '../../config/prisma';
 import { env } from '../../config/env';
 import { ConflictError, UnauthorizedError } from '../../common/errors';
-import type { SignupInput, SigninInput } from './auth.validator';
+import type { SignupInput, SigninInput, SigninResult, UserResponse } from './auth.dto.js';
 
 export class AuthService {
   /**
    * Registers a new user.
    * Encapsulates all business logic and database interactions.
    */
-  async signup(input: SignupInput) {
+  async signup(input: SignupInput): Promise<UserResponse> {
     // 1. Check if user already exists
     const existingUser = await prisma.user.findUnique({
       where: { email: input.email },
@@ -51,7 +51,7 @@ export class AuthService {
    * Returns sanitized user information and generated JWT token.
    * Intentionally uses generic error message to prevent user enumeration / brute force guessing.
    */
-  async signin(input: SigninInput) {
+  async signin(input: SigninInput): Promise<SigninResult> {
     // 1. Verify user existence
     const user = await prisma.user.findUnique({
       where: { email: input.email },

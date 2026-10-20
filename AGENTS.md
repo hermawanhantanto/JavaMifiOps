@@ -98,3 +98,7 @@
 ### 11. Snapshot Read Consistency with `prisma.$transaction` for Pagination
 - **Use `prisma.$transaction` for `findMany` + `count`**: For paginated queries that execute `findMany` alongside `count`, use `prisma.$transaction([findMany, count])` rather than `Promise.all([findMany, count])`.
 - **Why**: Guarantees database snapshot read isolation (`BEGIN ... COMMIT`) to prevent phantom record discrepancies between total count and returned items, while conserving connection pool resources by utilizing a single connection.
+
+### 12. Explicit Service Method Return Types (Defined in Module DTO)
+- **Always Explicitly Type Service Returns**: Every method in service classes must declare an explicit TypeScript return type (e.g. `Promise<UserResponse>`, `Promise<DeviceResponse>`, `Promise<ListDevicesResult>`, `Promise<void>`), matching the pattern established in `AuthService`.
+- **Centralize in `<feature>.dto.ts`**: Define all return DTO interfaces/types inside the feature's dedicated DTO file (e.g., `src/features/<feature>/<feature>.dto.ts`) to maintain clear contract boundaries and full type safety across layers.

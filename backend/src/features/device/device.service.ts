@@ -1,6 +1,13 @@
 import { prisma } from '../../config/prisma';
 import { BadRequestError, ConflictError, NotFoundError } from '../../common/errors';
-import type { AddDeviceInput, ListDeviceQuery, UpdateDeviceInput } from './device.dto.js';
+import type {
+  AddDeviceInput,
+  ListDeviceQuery,
+  UpdateDeviceInput,
+  DeviceResponse,
+  SingleDeviceResult,
+  ListDevicesResult,
+} from './device.dto.js';
 import {
   buildDeviceWhereInput,
   buildDeviceSelect,
@@ -13,7 +20,7 @@ export class DeviceService {
    * Registers a new hardware device asset in the inventory.
    * Performs conflict detection on unique hardware identifiers (serialNumber, imei).
    */
-  async addDevice(input: AddDeviceInput) {
+  async addDevice(input: AddDeviceInput): Promise<DeviceResponse> {
     const conflictWhere = buildDeviceConflictWhereInput({
       serialNumber: input.serialNumber,
       imei: input.imei,
@@ -52,7 +59,7 @@ export class DeviceService {
    * Throws NotFoundError if the device does not exist.
    * Selects only permissible fields directly at the database level based on role.
    */
-  async getDeviceById(id: string, role?: Role) {
+  async getDeviceById(id: string, role?: Role): Promise<SingleDeviceResult> {
     const select = buildDeviceSelect(role);
 
     const device = await prisma.device.findUnique({
@@ -64,7 +71,7 @@ export class DeviceService {
       throw new NotFoundError('Device not found');
     }
 
-    return device;
+    return device as SingleDeviceResult;
   }
 
   /**
@@ -73,7 +80,7 @@ export class DeviceService {
    * Uses prisma.$transaction for snapshot read consistency across findMany and count.
    * Selects only permissible fields directly at the database level based on role.
    */
-  async listDevices(query: ListDeviceQuery, role?: Role) {
+  async listDevices(query: ListDeviceQuery, role?: Role): Promise<ListDevicesResult> {
     const { page, limit } = query;
     const skip = (page - 1) * limit;
 
@@ -92,7 +99,7 @@ export class DeviceService {
     ]);
 
     return {
-      devices,
+      devices: devices as SingleDeviceResult[],
       pagination: {
         total,
         page,
@@ -108,7 +115,7 @@ export class DeviceService {
    * - Prevents transitioning a RENTED device to AVAILABLE directly.
    * - Validates hardware identifier uniqueness if serialNumber or imei is modified.
    */
-  async updateDevice(id: string, input: UpdateDeviceInput) {
+  async updateDevice(id: string, input: UpdateDeviceInput): Promise<DeviceResponse> {
     const existingDevice = await prisma.device.findUnique({
       where: { id },
     });
@@ -151,7 +158,48 @@ export class DeviceService {
       select,
     });
 
-    return updatedDevice;
+    return updatedDevice as DeviceResponse;
+  }
+
+  /**
+   * Permanently deletes a brand-new hardware device asset.
+   * Enforces business rules:
+   * - Prevents deletion if the device has ever been linked to a rental.
+   * - Prevents deletion if the device is linked to issue/maintenance tickets.
+   * Devices with historical associations should have their status transitioned to RETIRED instead.
+   */
+  async deleteDevice(id: string): Promise<void> {
+    const device = await prisma.device.findUnique({
+      where: { id },
+      include: {
+        _count: {
+          select: {
+            rentals: true,
+            tickets: true,
+          },
+        },
+      },
+    });
+
+    if (!device) {
+      throw new NotFoundError('Device not found');
+    }
+
+    if (device._count.rentals > 0) {
+      throw new BadRequestError(
+        'Cannot delete device with rental history. Update status to RETIRED instead'
+      );
+    }
+
+    if (device._count.tickets > 0) {
+      throw new BadRequestError(
+        'Cannot delete device associated with issue tickets. Update status to RETIRED instead'
+      );
+    }
+
+    await prisma.device.delete({
+      where: { id },
+    });
   }
 }
 

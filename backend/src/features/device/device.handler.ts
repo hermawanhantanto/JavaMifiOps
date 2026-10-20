@@ -58,3 +58,15 @@ export const updateDeviceHandler = async (req: Request, res: Response) => {
 
   return sendSuccess(res, 'Device updated successfully', { device }, 200);
 };
+
+/**
+ * Deletes an existing device by ID.
+ * Restricted to administrators.
+ */
+export const deleteDeviceHandler = async (req: Request, res: Response) => {
+  const { id } = getDeviceByIdSchema.parse(req.params);
+
+  await deviceService.deleteDevice(id);
+
+  return sendSuccess(res, 'Device deleted successfully', null, 200);
+};
