@@ -102,3 +102,9 @@
 ### 12. Explicit Service Method Return Types (Defined in Module DTO)
 - **Always Explicitly Type Service Returns**: Every method in service classes must declare an explicit TypeScript return type (e.g. `Promise<UserResponse>`, `Promise<DeviceResponse>`, `Promise<ListDevicesResult>`, `Promise<void>`), matching the pattern established in `AuthService`.
 - **Centralize in `<feature>.dto.ts`**: Define all return DTO interfaces/types inside the feature's dedicated DTO file (e.g., `src/features/<feature>/<feature>.dto.ts`) to maintain clear contract boundaries and full type safety across layers.
+
+
+### 13. Feature DTO Scoping & Boundary Encapsulation (No Cross-Layer Leakage)
+- **Strictly Scoped to Feature Module**: Feature DTO files (`src/features/<feature>/<feature>.dto.ts`) must strictly encapsulate only Data Transfer Objects, input types, and response contracts that belong directly to that specific feature.
+- **No Cross-Layer Type Pollution**: Never place types from external modules, cross-cutting concerns, or global middlewares (such as `AuthUserPayload` from `src/middlewares/auth.middleware.ts`) inside a feature's DTO file. Keep middleware and shared infrastructure types encapsulated within their respective middleware files or in `src/common/`.
+- **Clean Separation Between Validators and DTOs**: Validator files (`<feature>.validator.ts`) are strictly dedicated to runtime Zod validation schemas. Static inferred types (`z.infer<typeof ...>`) and service contract interfaces must be defined in `<feature>.dto.ts`.
