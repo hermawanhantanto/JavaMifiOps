@@ -12,7 +12,7 @@ enum Role {
   CUSTOMER
 }
 
-enum HardwareStatus {
+enum DeviceStatus {
   AVAILABLE
   RENTED
   MAINTENANCE
@@ -20,7 +20,7 @@ enum HardwareStatus {
   RETIRED
 }
 
-enum RentStatus {
+enum RentalStatus {
   PENDING_PAYMENT
   CONFIRMED
   ACTIVE
@@ -35,7 +35,7 @@ enum PaymentGateway {
   MOCK
 }
 
-enum TransactionStatus {
+enum PaymentStatus {
   PENDING
   PAID
   EXPIRED
@@ -43,7 +43,7 @@ enum TransactionStatus {
   REFUNDED
 }
 
-enum IssueCategory {
+enum TicketCategory {
   NO_SIGNAL
   BATTERY_FAILURE
   PHYSICAL_DAMAGE
@@ -51,14 +51,14 @@ enum IssueCategory {
   OTHER
 }
 
-enum IssuePriority {
+enum TicketPriority {
   LOW
   MEDIUM
   HIGH
   CRITICAL
 }
 
-enum IssueStatus {
+enum TicketStatus {
   OPEN
   IN_PROGRESS
   RESOLVED
@@ -66,106 +66,111 @@ enum IssueStatus {
 }
 
 model User {
-  id           String        @id @default(cuid())
-  email        String        @unique
+  id           String    @id @default(cuid())
+  email        String    @unique
   name         String
   passwordHash String
   phone        String?
-  role         Role          @default(CUSTOMER)
-  rents        Rent[]
-  issueTickets IssueTicket[]
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
+  role         Role      @default(CUSTOMER)
+  rentals      Rental[]
+  tickets      Ticket[]
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
 
   @@index([role])
+  @@map("users")
 }
 
-model HardwareAsset {
-  id            String         @id @default(cuid())
-  serialNumber  String         @unique
-  imei          String         @unique
+model Device {
+  id            String       @id @default(cuid())
+  serialNumber  String       @unique
+  imei          String       @unique
   model         String
-  batteryHealth Int            @default(100)
+  batteryHealth Int          @default(100)
   speed         String
-  dailyRate     Decimal        @db.Decimal(12, 2)
-  status        HardwareStatus @default(AVAILABLE)
-  rents         Rent[]
-  issueTickets  IssueTicket[]
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
+  dailyRate     Decimal      @db.Decimal(12, 2)
+  status        DeviceStatus @default(AVAILABLE)
+  rentals       Rental[]
+  tickets       Ticket[]
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
 
   @@index([status])
   @@index([model])
+  @@map("devices")
 }
 
-model Rent {
-  id            String         @id @default(cuid())
-  rentalCode    String         @unique
+model Rental {
+  id            String       @id @default(cuid())
+  rentalCode    String       @unique
   userId        String
-  user          User           @relation(fields: [userId], references: [id])
-  hardwareId    String?
-  hardware      HardwareAsset? @relation(fields: [hardwareId], references: [id], onDelete: SetNull)
+  user          User         @relation(fields: [userId], references: [id])
+  deviceId      String?
+  device        Device?      @relation(fields: [deviceId], references: [id], onDelete: SetNull)
   destination   String
   startDate     DateTime
   endDate       DateTime
   totalDays     Int
-  dailyRate     Decimal        @db.Decimal(12, 2)
-  depositAmount Decimal        @default(0) @db.Decimal(12, 2)
-  totalAmount   Decimal        @db.Decimal(12, 2)
-  status        RentStatus     @default(PENDING_PAYMENT)
-  transactions  Transaction[]
-  issueTickets  IssueTicket[]
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
+  dailyRate     Decimal      @db.Decimal(12, 2)
+  depositAmount Decimal      @default(0) @db.Decimal(12, 2)
+  totalAmount   Decimal      @db.Decimal(12, 2)
+  status        RentalStatus @default(PENDING_PAYMENT)
+  payments      Payment[]
+  tickets       Ticket[]
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
 
   @@index([userId])
-  @@index([hardwareId])
+  @@index([deviceId])
   @@index([status])
   @@index([startDate, endDate])
+  @@map("rentals")
 }
 
-model Transaction {
-  id            String            @id @default(cuid())
-  rentId        String
-  rent          Rent              @relation(fields: [rentId], references: [id], onDelete: Cascade)
-  gatewayRef    String?           @unique
-  gateway       PaymentGateway    @default(MIDTRANS)
+model Payment {
+  id            String         @id @default(cuid())
+  rentalId      String
+  rental        Rental         @relation(fields: [rentalId], references: [id], onDelete: Cascade)
+  gatewayRef    String?        @unique
+  gateway       PaymentGateway @default(MIDTRANS)
   paymentMethod String?
-  amount        Decimal           @db.Decimal(12, 2)
-  status        TransactionStatus @default(PENDING)
+  amount        Decimal        @db.Decimal(12, 2)
+  status        PaymentStatus  @default(PENDING)
   snapToken     String?
   paidAt        DateTime?
   expiresAt     DateTime?
-  createdAt     DateTime          @default(now())
-  updatedAt     DateTime          @updatedAt
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
 
-  @@index([rentId])
+  @@index([rentalId])
   @@index([status])
   @@index([gatewayRef])
+  @@map("payments")
 }
 
-model IssueTicket {
+model Ticket {
   id              String         @id @default(cuid())
   ticketCode      String         @unique
-  rentId          String
-  rent            Rent           @relation(fields: [rentId], references: [id], onDelete: Cascade)
-  hardwareId      String?
-  hardware        HardwareAsset? @relation(fields: [hardwareId], references: [id], onDelete: SetNull)
+  rentalId        String
+  rental          Rental         @relation(fields: [rentalId], references: [id], onDelete: Cascade)
+  deviceId        String?
+  device          Device?        @relation(fields: [deviceId], references: [id], onDelete: SetNull)
   reporterId      String
   reporter        User           @relation(fields: [reporterId], references: [id])
-  category        IssueCategory  @default(OTHER)
-  priority        IssuePriority  @default(MEDIUM)
+  category        TicketCategory @default(OTHER)
+  priority        TicketPriority @default(MEDIUM)
   subject         String
   description     String         @db.Text
-  status          IssueStatus    @default(OPEN)
+  status          TicketStatus   @default(OPEN)
   resolutionNotes String?        @db.Text
   resolvedAt      DateTime?
   createdAt       DateTime       @default(now())
   updatedAt       DateTime       @updatedAt
 
-  @@index([rentId])
-  @@index([hardwareId])
+  @@index([rentalId])
+  @@index([deviceId])
   @@index([reporterId])
   @@index([status])
   @@index([priority])
+  @@map("tickets")
 }
