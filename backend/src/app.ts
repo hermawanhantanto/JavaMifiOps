@@ -5,6 +5,7 @@ import cookieParser from 'cookie-parser';
 import authRouter from './features/auth/auth.route';
 import deviceRouter from './features/device/device.route';
 import rentalRouter from './features/rental/rental.route';
+import paymentRouter from './features/payment/payment.route';
 import { errorHandler } from './middlewares/error.middleware';
 import { env } from './config/env';
 
@@ -30,6 +31,9 @@ export const createApp = (): Express => {
 
   // Rental booking routes
   app.use('/api/rental', rentalRouter);
+
+  // Payment webhook and notification routes
+  app.use('/api/payment', paymentRouter);
 
   // Global error handling middleware (Express 5 async error propagation)
   app.use(errorHandler);

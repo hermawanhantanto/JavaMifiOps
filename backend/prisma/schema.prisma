@@ -148,8 +148,9 @@ model Payment {
   redirectUrl   String?
   paidAt        DateTime?
   expiresAt     DateTime?
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+  webhookLogs   PaymentWebhookLog[]
 
   @@index([rentalId])
   @@index([status])
@@ -182,4 +183,29 @@ model Ticket {
   @@index([status])
   @@index([priority])
   @@map("tickets")
+}
+
+model PaymentWebhookLog {
+  id                String       @id @default(cuid())
+  paymentId         String?
+  payment           Payment?     @relation(fields: [paymentId], references: [id], onDelete: SetNull)
+  orderId           String
+  transactionId     String?
+  transactionStatus String?
+  fraudStatus       String?
+  statusCode        String?
+  grossAmount       Decimal?     @db.Decimal(12, 2)
+  signatureKey      String?
+  isSignatureValid  Boolean      @default(false)
+  isProcessed       Boolean      @default(false)
+  failureReason     String?
+  rawPayload        Json
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+
+  @@index([orderId])
+  @@index([transactionId])
+  @@index([paymentId])
+  @@index([isProcessed])
+  @@map("payment_webhook_logs")
 }
