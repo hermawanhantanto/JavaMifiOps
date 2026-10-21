@@ -151,24 +151,27 @@ function RentalBookingContent({ device, onOpenChange }: RentalBookingContentProp
         )}
 
         {/* Booking Summary Card */}
-        <div className="rounded-xl border border-border bg-card p-4 space-y-3">
-          <div className="flex items-center justify-between pb-3 border-b border-border/70">
+        <div className="rounded-xl border border-border bg-card p-4 space-y-3.5">
+          {/* Device Model with Wifi icon on top, Daily Rate & Speed below */}
+          <div className="pb-3 border-b border-border/70 space-y-1.5">
             <div className="flex items-center gap-2.5">
               <div className="size-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary shrink-0">
                 <Wifi className="size-4" />
               </div>
-              <div>
-                <h4 className="font-semibold text-sm text-foreground leading-tight">
-                  {device.model}
-                </h4>
-                <p className="text-xs text-muted-foreground">
-                  {formatDeviceSpeed(device.speed)}
-                </p>
-              </div>
+              <h4 className="font-semibold text-sm sm:text-base text-foreground leading-snug break-words">
+                {device.model}
+              </h4>
             </div>
-            <span className="text-xs font-mono text-muted-foreground">
-              {formatDailyRate(device.dailyRate)}
-            </span>
+
+            <div className="flex items-center gap-2.5 text-xs text-muted-foreground pl-[42px] flex-wrap">
+              <span className="font-mono font-medium text-foreground">
+                {formatDailyRate(device.dailyRate)}
+              </span>
+              <span className="text-muted-foreground/40">•</span>
+              <span className="inline-flex items-center rounded-md bg-muted px-2 py-0.5 font-medium text-foreground text-[11px]">
+                {formatDeviceSpeed(device.speed)}
+              </span>
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-y-2.5 gap-x-4 text-xs pt-0.5">
@@ -271,14 +274,24 @@ function RentalBookingContent({ device, onOpenChange }: RentalBookingContentProp
       </DialogHeader>
 
       {/* Device Overview Banner */}
-      <div className="rounded-xl border border-border bg-card p-3 flex items-center justify-between text-xs">
-        <div className="space-y-0.5">
-          <p className="font-semibold text-foreground text-sm">{device.model}</p>
-          <p className="text-muted-foreground">{formatDeviceSpeed(device.speed)}</p>
+      <div className="rounded-xl border border-border bg-card p-3.5 space-y-1.5">
+        <div className="flex items-center gap-2.5">
+          <div className="size-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary shrink-0">
+            <Wifi className="size-4" />
+          </div>
+          <h4 className="font-semibold text-sm sm:text-base text-foreground leading-snug break-words">
+            {device.model}
+          </h4>
         </div>
-        <div className="text-right">
-          <p className="font-medium text-foreground">{formatDailyRate(device.dailyRate)}</p>
-          <p className="text-[11px] text-muted-foreground">daily rate</p>
+
+        <div className="flex items-center gap-2.5 text-xs text-muted-foreground pl-[42px] flex-wrap">
+          <span className="font-mono font-medium text-foreground">
+            {formatDailyRate(device.dailyRate)}
+          </span>
+          <span className="text-muted-foreground/40">•</span>
+          <span className="inline-flex items-center rounded-md bg-muted px-2 py-0.5 font-medium text-foreground text-[11px]">
+            {formatDeviceSpeed(device.speed)}
+          </span>
         </div>
       </div>
 
