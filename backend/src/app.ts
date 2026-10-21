@@ -6,6 +6,7 @@ import authRouter from './features/auth/auth.route';
 import deviceRouter from './features/device/device.route';
 import rentalRouter from './features/rental/rental.route';
 import paymentRouter from './features/payment/payment.route';
+import publicRouter from './features/public/public.route';
 import { errorHandler } from './middlewares/error.middleware';
 import { env } from './config/env';
 
@@ -34,6 +35,9 @@ export const createApp = (): Express => {
 
   // Payment webhook and notification routes
   app.use('/api/payment', paymentRouter);
+
+  // Public catalog and tracking routes (used by n8n AI Agent and customer support)
+  app.use('/api/public', publicRouter);
 
   // Global error handling middleware (Express 5 async error propagation)
   app.use(errorHandler);
