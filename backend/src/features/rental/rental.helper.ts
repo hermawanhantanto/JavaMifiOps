@@ -75,32 +75,40 @@ export const generatePaymentId = (): string => {
 /**
  * Builds standard transaction parameters for Midtrans Snap hosted checkout.
  */
-export const buildSnapTransactionParameter = (params: BuildSnapTransactionParams) => ({
-  transaction_details: {
-    order_id: params.orderId ?? params.rentalCode,
-    gross_amount: params.totalAmount,
-  },
-  customer_details: {
-    first_name: params.customer?.name ?? 'Customer',
-    email: params.customer?.email ?? 'customer@javamifi.com',
-    phone: params.customer?.phone ?? undefined,
-  },
-  item_details: [
-    {
-      id: params.device.id,
-      price: params.totalAmount,
-      quantity: 1,
-      name: `Pocket Wi-Fi (${params.device.model}) - ${params.totalDays} Days`,
+export const buildSnapTransactionParameter = (params: BuildSnapTransactionParams) => {
+  // Midtrans enforces a strict 50 character limit on item_details[].name.
+  // Truncate cleanly so it never exceeds 45 characters.
+  const rawItemName = `Wi-Fi (${params.device.model}) ${params.totalDays}D`;
+  const sanitizedItemName =
+    rawItemName.length > 45 ? `${rawItemName.slice(0, 42)}...` : rawItemName;
+
+  return {
+    transaction_details: {
+      order_id: params.orderId ?? params.rentalCode,
+      gross_amount: params.totalAmount,
     },
-  ],
-  expiry: {
-    unit: 'minutes',
-    duration: 30,
-  },
-  callbacks: {
-    finish: `${params.clientUrl}/rental`,
-  },
-});
+    customer_details: {
+      first_name: params.customer?.name ?? 'Customer',
+      email: params.customer?.email ?? 'customer@javamifi.com',
+      phone: params.customer?.phone ?? undefined,
+    },
+    item_details: [
+      {
+        id: params.device.id.slice(0, 50),
+        price: params.totalAmount,
+        quantity: 1,
+        name: sanitizedItemName,
+      },
+    ],
+    expiry: {
+      unit: 'minutes',
+      duration: 30,
+    },
+    callbacks: {
+      finish: `${params.clientUrl}/rental`,
+    },
+  };
+};
 
 /**
  * Builds a type-safe Prisma WhereInput filter object from list query parameters.

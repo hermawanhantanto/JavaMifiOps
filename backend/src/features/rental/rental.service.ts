@@ -108,7 +108,7 @@ export class RentalService {
       const snapResponse = await snap.createTransaction(snapParameter);
       snapToken = snapResponse.token;
       redirectUrl = snapResponse.redirect_url;
-    } catch (error) {
+    } catch (error: any) {
       throw new AppError('Payment gateway is currently unavailable. Please try again later', 502);
     }
 
@@ -373,6 +373,7 @@ export class RentalService {
     try {
       snapResponse = await snap.createTransaction(snapPayload);
     } catch (error: any) {
+      console.error('[ERROR] Midtrans createTransaction (update) failed:', error?.ApiResponse || error?.message || error);
       throw new AppError('Payment gateway is currently unavailable. Please try again later', 502);
     }
 
