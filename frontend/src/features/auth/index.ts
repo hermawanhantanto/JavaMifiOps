@@ -9,4 +9,5 @@ export * from './schemas/auth.schema';
 export * from './types/auth.types';
 export * from './hooks/use-signup';
 export * from './hooks/use-signin';
+export * from './hooks/use-current-user';
 export * from './api/auth.api';

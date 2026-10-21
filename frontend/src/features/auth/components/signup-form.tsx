@@ -35,7 +35,7 @@ export function SignUpForm() {
       password: '',
       confirm_password: '',
     },
-    mode: 'onBlur',
+    mode: 'onTouched',
   });
 
   const signupMutation = useSignup({
@@ -109,7 +109,7 @@ export function SignUpForm() {
                   disabled={isSubmitting}
                 />
               </FormControl>
-              <FormDescription className="text-xs font-medium text-destructive">
+              <FormDescription>
                 Must start with 62 and be 10-15 digits long
               </FormDescription>
               <FormMessage />

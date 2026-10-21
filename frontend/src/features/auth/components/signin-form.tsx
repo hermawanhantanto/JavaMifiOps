@@ -34,7 +34,7 @@ export function SignInForm({ onSuccessRedirect = '/' }: SignInFormProps) {
       email: '',
       password: '',
     },
-    mode: 'onBlur',
+    mode: 'onTouched',
   });
 
   const signinMutation = useSignin({

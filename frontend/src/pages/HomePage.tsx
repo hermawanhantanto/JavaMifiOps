@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 
 export function HomePage() {
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center p-8 bg-background text-foreground">
+    <div className="flex flex-col items-center justify-center py-12 sm:py-20 text-foreground">
       <div className="max-w-md w-full rounded-xl border border-border bg-card p-6 shadow-sm space-y-4">
         <h1 className="text-2xl font-bold tracking-tight">JavaMifiRent</h1>
         <ul className="text-sm space-y-1 text-muted-foreground">
@@ -25,3 +25,5 @@ export function HomePage() {
     </div>
   );
 }
+
+export default HomePage;
