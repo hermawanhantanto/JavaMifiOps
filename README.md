@@ -294,12 +294,13 @@ docker run --name javamifi-redis -p 6379:6379 -d redis:7-alpine
    ```
    *(Catatan: Ganti `MIDTRANS_SERVER_KEY` dan `MIDTRANS_CLIENT_KEY` dengan kunci Sandbox dari akun Midtrans Anda. Cara mendapatkannya dijelaskan pada Tahap 4).*
 
-3. Jalankan pembuatan Prisma Client, migrasi tabel database, dan pengisian katalog awal perangkat keras (seed):
+3. Jalankan pembuatan Prisma Client, migrasi tabel database, dan pengisian data awal terpadu (seed):
    ```powershell
    npm run prisma:generate
    npx prisma migrate deploy
-   npm run db:seed:devices
+   npm run db:seed
    ```
+   *Script seed ini secara otomatis menambahkan 1 akun Admin, 1 akun Customer, 10 unit perangkat Pocket Wi-Fi, serta 10 data riwayat rental beserta pembayaran dummy.*
 
 4. Jalankan server pengembangan backend:
    ```powershell
@@ -307,12 +308,13 @@ docker run --name javamifi-redis -p 6379:6379 -d redis:7-alpine
    ```
    Server backend akan aktif di `http://localhost:5000`.
 
-5. **Membuat Akun Pengguna & Mengubah Peran menjadi `ADMIN` (Opsional untuk Pengujian Dashboard Admin)**:
-   - Daftar akun baru melalui halaman Sign Up di Frontend (`http://localhost:3000/signup`).
-   - Secara bawaan, akun baru memiliki peran `CUSTOMER`. Untuk menjadikan akun sebagai `ADMIN`, jalankan Prisma Studio (`npx prisma studio` di folder `backend`) atau jalankan query SQL berikut pada database PostgreSQL Anda:
-     ```sql
-     UPDATE users SET role = 'ADMIN' WHERE email = 'email_admin_anda@domain.com';
-     ```
+5. **Kredensial Akun Pengujian Bawaan (Default Seed Accounts)**:
+   Tidak perlu membuat akun secara manual dari nol. Script seed telah menyediakan dua akun siap pakai:
+
+   | Peran (Role) | Email | Password | Hak Akses & Keterangan Data |
+   | :--- | :--- | :--- | :--- |
+   | **ADMIN** | `admin@javamifi.com` | `Password123!` | Akses penuh ke Admin Operations Center, CRUD Inventaris Perangkat (`Device Fleet`), penyerahan perangkat (`Dispatch`), dan inspeksi retur (`Return Inspection`). |
+   | **CUSTOMER** | `customer@javamifi.com` | `Password123!` | Sudah terhubung dengan 10 riwayat penyewaan dan 10 pembayaran dummy (status: `ACTIVE`, `CONFIRMED`, `OVERDUE`, `PENDING_PAYMENT`, `RETURNED`, dan `CANCELLED`). |
 
 ---
 
