@@ -12,7 +12,7 @@ export interface RentalToolbarProps {
 }
 
 /**
- * Toolbar component combining debounced search input and status filter dropdown.
+ * Top toolbar for the rental table, consistent with device toolbar.
  */
 export function RentalToolbar({
   searchTerm,
@@ -22,20 +22,18 @@ export function RentalToolbar({
   isAdmin = false,
   disabled = false,
 }: RentalToolbarProps) {
-  const searchPlaceholder = isAdmin
-    ? 'Search by code, user, device, destination...'
-    : 'Search by code, device, or destination...';
-
   return (
-    <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
-      <div className="flex-1 max-w-md">
-        <RentalSearchInput
-          value={searchTerm}
-          onChange={onSearchChange}
-          placeholder={searchPlaceholder}
-          disabled={disabled}
-        />
-      </div>
+    <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 w-full pb-2">
+      <RentalSearchInput
+        value={searchTerm}
+        onChange={onSearchChange}
+        placeholder={
+          isAdmin
+            ? 'Search code, user, device, destination...'
+            : 'Search code, device, or destination...'
+        }
+        disabled={disabled}
+      />
 
       <div className="flex items-center gap-2">
         <RentalStatusFilter

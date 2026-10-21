@@ -24,7 +24,7 @@ const RENTAL_STATUS_OPTIONS: Array<{ value: RentalStatus | 'ALL'; label: string 
 ];
 
 /**
- * Single-purpose status dropdown filter for rental bookings.
+ * Dropdown select filter for rental statuses matching device filter select.
  */
 export function RentalStatusFilter({
   value,
@@ -32,7 +32,7 @@ export function RentalStatusFilter({
   disabled = false,
 }: RentalStatusFilterProps) {
   return (
-    <div className="w-[180px]">
+    <div className="w-[165px]">
       <Select
         value={value}
         onValueChange={(val) => onChange(val as RentalStatus | 'ALL')}

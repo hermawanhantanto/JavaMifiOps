@@ -36,20 +36,20 @@ export function formatRentalStatus(status: RentalStatus | string): string {
 }
 
 /**
- * Returns clean Tailwind badge color styling corresponding to rental status.
+ * Returns Tailwind badge classes consistent with DeviceStatusBadge styling.
  */
-export function getRentalStatusClasses(status: RentalStatus | string): string {
+export function getRentalStatusVariant(status: RentalStatus | string): string {
   switch (status) {
     case 'PENDING_PAYMENT':
-      return 'bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/25';
+      return 'bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20';
     case 'CONFIRMED':
-      return 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/25';
+      return 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20';
     case 'ACTIVE':
-      return 'bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-500/25';
+      return 'bg-purple-500/10 text-purple-700 dark:text-purple-400 border-purple-500/20';
     case 'RETURNED':
-      return 'bg-purple-500/10 text-purple-700 dark:text-purple-400 border-purple-500/25';
+      return 'bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-500/20';
     case 'OVERDUE':
-      return 'bg-destructive/10 text-destructive border-destructive/25';
+      return 'bg-destructive/10 text-destructive border-destructive/20';
     case 'CANCELLED':
       return 'bg-muted text-muted-foreground border-border';
     default:
@@ -66,28 +66,42 @@ export function formatRentalDate(dateStr: string | Date | null | undefined): str
   if (isNaN(d.getTime())) return String(dateStr);
 
   return new Intl.DateTimeFormat('en-GB', {
-    day: '2-digit',
+    day: 'numeric',
     month: 'short',
     year: 'numeric',
   }).format(d);
 }
 
 /**
- * Formats a start and end date range along with duration in days.
- * Example: "21 Oct 2026 – 25 Oct 2026 (5 days)"
+ * Formats start and end dates compactly.
+ * Example: "21 Oct – 25 Oct 2026"
  */
 export function formatRentalDateRange(
   startStr: string | Date,
-  endStr: string | Date,
-  totalDays?: number
+  endStr: string | Date
 ): string {
-  const start = formatRentalDate(startStr);
-  const end = formatRentalDate(endStr);
+  if (!startStr || !endStr) return '-';
+  const start = new Date(startStr);
+  const end = new Date(endStr);
+  if (isNaN(start.getTime()) || isNaN(end.getTime())) return '-';
 
-  if (totalDays !== undefined && totalDays > 0) {
-    const dayLabel = totalDays === 1 ? '1 day' : `${totalDays} days`;
-    return `${start} – ${end} (${dayLabel})`;
+  const startDay = start.getDate();
+  const startMonth = new Intl.DateTimeFormat('en-GB', { month: 'short' }).format(start);
+  const startYear = start.getFullYear();
+
+  const endDay = end.getDate();
+  const endMonth = new Intl.DateTimeFormat('en-GB', { month: 'short' }).format(end);
+  const endYear = end.getFullYear();
+
+  if (startYear === endYear) {
+    if (startMonth === endMonth) {
+      if (startDay === endDay) {
+        return `${startDay} ${startMonth} ${startYear}`;
+      }
+      return `${startDay} – ${endDay} ${startMonth} ${startYear}`;
+    }
+    return `${startDay} ${startMonth} – ${endDay} ${endMonth} ${startYear}`;
   }
 
-  return `${start} – ${end}`;
+  return `${startDay} ${startMonth} ${startYear} – ${endDay} ${endMonth} ${endYear}`;
 }

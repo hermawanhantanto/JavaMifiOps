@@ -10,34 +10,24 @@ export interface RentalTableRowProps {
 }
 
 /**
- * Single-purpose component rendering a single rental record row adhering to role column projection.
+ * Single-purpose table row component consistent with device table row styling.
  */
 export function RentalTableRow({ rental, isAdmin }: RentalTableRowProps) {
   const deviceModel = rental.device?.model ?? 'Pocket WiFi';
-  const formattedDates = formatRentalDateRange(
-    rental.startDate,
-    rental.endDate,
-    rental.totalDays
-  );
+  const formattedDates = formatRentalDateRange(rental.startDate, rental.endDate);
 
   if (isAdmin) {
-    const userName = rental.user?.name || rental.user?.email || 'N/A';
-    const userEmail = rental.user?.email;
+    const userName = rental.user?.name || rental.user?.email || '—';
 
     return (
       <TableRow className="transition-colors hover:bg-muted/50">
-        <TableCell className="font-mono text-xs font-medium text-foreground">
+        <TableCell className="font-mono text-xs text-muted-foreground">
           {rental.rentalCode}
         </TableCell>
-        <TableCell>
-          <div className="flex flex-col">
-            <span className="text-sm font-medium text-foreground">{userName}</span>
-            {userEmail && rental.user?.name && (
-              <span className="text-[11px] text-muted-foreground font-mono">{userEmail}</span>
-            )}
-          </div>
+        <TableCell className="font-medium text-foreground text-sm">
+          {userName}
         </TableCell>
-        <TableCell className="text-sm font-medium text-foreground">
+        <TableCell className="font-medium text-foreground text-sm">
           {deviceModel}
         </TableCell>
         <TableCell className="text-sm text-muted-foreground">
@@ -46,7 +36,7 @@ export function RentalTableRow({ rental, isAdmin }: RentalTableRowProps) {
         <TableCell className="text-xs text-muted-foreground">
           {formattedDates}
         </TableCell>
-        <TableCell className="text-sm font-semibold text-foreground whitespace-nowrap">
+        <TableCell className="text-sm font-normal text-foreground">
           {formatRentalCurrency(rental.totalAmount)}
         </TableCell>
         <TableCell>
@@ -61,10 +51,10 @@ export function RentalTableRow({ rental, isAdmin }: RentalTableRowProps) {
 
   return (
     <TableRow className="transition-colors hover:bg-muted/50">
-      <TableCell className="font-mono text-xs font-medium text-foreground">
+      <TableCell className="font-mono text-xs text-muted-foreground">
         {rental.rentalCode}
       </TableCell>
-      <TableCell className="text-sm font-medium text-foreground">
+      <TableCell className="font-medium text-foreground text-sm">
         {deviceModel}
       </TableCell>
       <TableCell className="text-sm text-muted-foreground">
@@ -73,7 +63,7 @@ export function RentalTableRow({ rental, isAdmin }: RentalTableRowProps) {
       <TableCell className="text-xs text-muted-foreground">
         {formattedDates}
       </TableCell>
-      <TableCell className="text-sm font-semibold text-foreground whitespace-nowrap">
+      <TableCell className="text-sm font-normal text-foreground">
         {formatRentalCurrency(rental.totalAmount)}
       </TableCell>
       <TableCell>

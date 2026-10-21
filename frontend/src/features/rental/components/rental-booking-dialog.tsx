@@ -12,6 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import type { DeviceItem } from '@/features/device/types/device.types';
 import { formatDailyRate, formatDeviceSpeed } from '@/features/device/utils/device.mapper';
+import { formatRentalCurrency } from '../utils/rental.mapper';
 import { useCreateRental } from '../hooks/use-create-rental';
 import { useCurrentUser } from '@/features/auth/hooks/use-current-user';
 import { useNavigate } from 'react-router-dom';
@@ -207,9 +208,14 @@ function RentalBookingContent({ device, onOpenChange }: RentalBookingContentProp
 
           <div className="border-t border-border/70 pt-3 flex items-baseline justify-between">
             <span className="text-xs font-medium text-muted-foreground">Total Due</span>
-            <span className="text-lg font-bold text-foreground">
-              {formatDailyRate(totalAmount)}
-            </span>
+            <div className="text-right">
+              <span className="text-lg font-bold text-foreground">
+                {formatRentalCurrency(totalAmount)}
+              </span>
+              <span className="text-xs font-normal text-muted-foreground block text-[11px]">
+                / {totalDays} {totalDays > 1 ? 'days' : 'day'}
+              </span>
+            </div>
           </div>
         </div>
 
@@ -362,7 +368,12 @@ function RentalBookingContent({ device, onOpenChange }: RentalBookingContentProp
         </div>
         <div className="flex justify-between border-t border-border pt-1.5 font-semibold text-foreground text-sm">
           <span>Estimated Total:</span>
-          <span>{formatDailyRate(totalAmount)}</span>
+          <span>
+            {formatRentalCurrency(totalAmount)}
+            <span className="text-xs font-normal text-muted-foreground ml-1">
+              / {totalDays} {totalDays > 1 ? 'days' : 'day'}
+            </span>
+          </span>
         </div>
       </div>
 

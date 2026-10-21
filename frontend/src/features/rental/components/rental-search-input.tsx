@@ -9,12 +9,12 @@ export interface RentalSearchInputProps {
 }
 
 /**
- * Single-purpose debounced search input component for filtering rental bookings.
+ * Single-purpose search input component for filtering rentals, matching device search input.
  */
 export function RentalSearchInput({
   value,
   onChange,
-  placeholder = 'Search by code, device, destination...',
+  placeholder = 'Search rentals...',
   disabled = false,
 }: RentalSearchInputProps) {
   return (
@@ -34,7 +34,7 @@ export function RentalSearchInput({
           onClick={() => onChange('')}
           disabled={disabled}
           className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors p-0.5 rounded-sm"
-          aria-label="Clear rental search input"
+          aria-label="Clear search input"
         >
           <X className="size-3.5" />
         </button>

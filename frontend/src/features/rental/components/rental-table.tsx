@@ -15,8 +15,7 @@ export interface RentalTableProps {
 }
 
 /**
- * Main rental table container component.
- * Coordinates table structure, role-projected columns, skeleton states, and pagination controls.
+ * Main rental table component consistent with device table structure.
  */
 export function RentalTable({
   rentals,
@@ -61,7 +60,7 @@ export function RentalTable({
         </Table>
       </div>
 
-      {/* Pagination Controls */}
+      {/* Pagination Bar */}
       {pagination && totalPages > 1 && (
         <div className="flex items-center justify-between text-xs sm:text-sm text-muted-foreground px-1">
           <div>

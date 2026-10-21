@@ -7,7 +7,7 @@ export interface RentalTableSkeletonProps {
 }
 
 /**
- * Single-purpose component rendering animated skeleton rows during rental data fetching.
+ * Single-purpose component rendering animated skeleton rows consistent with device table.
  */
 export function RentalTableSkeleton({
   rows = 5,

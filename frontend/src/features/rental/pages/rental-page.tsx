@@ -9,9 +9,9 @@ import { Button } from '@/components/ui/button';
 import { AlertCircle, RefreshCw } from 'lucide-react';
 
 /**
- * Top-level Rental page coordinator.
- * Coordinates user role projection, debounced text search, status filtering,
- * pagination state, and query lifecycle.
+ * Top-level Rental view page.
+ * Coordinates search debouncing, role checking, query state, and table pagination,
+ * matching DevicePage architectural conventions.
  */
 export function RentalPage() {
   const { user } = useCurrentUser();
@@ -45,11 +45,11 @@ export function RentalPage() {
 
   return (
     <div className="space-y-6">
-      {/* Page Header */}
+      {/* Page Title & Subtitle */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
         <div>
           <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground font-heading">
-            {isAdmin ? 'Rental Management' : 'My Rentals'}
+            {isAdmin ? 'Rental Management' : 'Rental Bookings'}
           </h1>
           <p className="text-xs sm:text-sm text-muted-foreground">
             {isAdmin
@@ -59,7 +59,7 @@ export function RentalPage() {
         </div>
       </div>
 
-      {/* Toolbar: Debounced Search & Status Filter */}
+      {/* Toolbar: Debounced Search & Status Select */}
       <RentalToolbar
         searchTerm={searchTerm}
         onSearchChange={handleSearchChange}
