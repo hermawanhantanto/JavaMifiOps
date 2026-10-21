@@ -1,12 +1,14 @@
 import type { z } from 'zod';
 import type { Rental, Payment, Device } from '../../generated/prisma/client.js';
-import type { createRentalSchema } from './rental.validator.js';
+import type { createRentalSchema, updateRentalSchema } from './rental.validator.js';
 
 /**
  * Data Transfer Objects (DTOs) strictly scoped to the Rental Feature Module.
  */
 
 export type CreateRentalInput = z.infer<typeof createRentalSchema>;
+
+export type UpdateRentalInput = z.infer<typeof updateRentalSchema>;
 
 export type RentalResponse = Rental;
 
@@ -29,6 +31,7 @@ export interface RentalCalculationResult {
 }
 
 export interface BuildSnapTransactionParams {
+  orderId?: string;
   rentalCode: string;
   totalAmount: number;
   totalDays: number;

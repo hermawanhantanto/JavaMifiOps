@@ -54,16 +54,11 @@ export class PaymentService {
       throw new BadRequestError('Invalid payment signature');
     }
 
-    // 4. Resolve associated Payment and Rental records directly
-    const payment = await prisma.payment.findFirst({
-      where: {
-        rental: { rentalCode: payload.order_id },
-      },
+    // 4. Resolve associated Payment and Rental records directly by payment primary key
+    const payment = await prisma.payment.findUnique({
+      where: { id: payload.order_id },
       include: {
         rental: true,
-      },
-      orderBy: {
-        createdAt: 'desc',
       },
     });
 

@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { createRentalHandler } from './rental.handler';
+import { createRentalHandler, updateRentalHandler } from './rental.handler';
 import { authenticateToken, requireRole } from '../../middlewares/auth.middleware';
 import { Role } from '../../generated/prisma/enums.js';
 
@@ -16,6 +16,19 @@ rentalRouter.post(
   authenticateToken,
   requireRole(Role.CUSTOMER, Role.ADMIN),
   createRentalHandler
+);
+
+/**
+ * Endpoint: PATCH /api/rental/:id
+ * Updates an existing rental booking while in PENDING_PAYMENT status.
+ * If dates change, recalculates amounts, voids previous pending payment,
+ * and generates a new Midtrans Snap payment URL.
+ */
+rentalRouter.patch(
+  '/:id',
+  authenticateToken,
+  requireRole(Role.CUSTOMER, Role.ADMIN),
+  updateRentalHandler
 );
 
 export default rentalRouter;

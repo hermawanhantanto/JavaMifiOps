@@ -54,11 +54,25 @@ export const generateRentalCode = (): string => {
 };
 
 /**
+ * Generates a unique, non-guessable, human-readable payment reference ID.
+ * Format: PAY-YYYYMMDD-XXXXXXXX (e.g. PAY-20261021-9A3F12BC)
+ */
+export const generatePaymentId = (): string => {
+  const today = new Date();
+  const year = today.getUTCFullYear();
+  const month = String(today.getUTCMonth() + 1).padStart(2, '0');
+  const day = String(today.getUTCDate()).padStart(2, '0');
+  const randomSuffix = crypto.randomBytes(4).toString('hex').toUpperCase();
+
+  return `PAY-${year}${month}${day}-${randomSuffix}`;
+};
+
+/**
  * Builds standard transaction parameters for Midtrans Snap hosted checkout.
  */
 export const buildSnapTransactionParameter = (params: BuildSnapTransactionParams) => ({
   transaction_details: {
-    order_id: params.rentalCode,
+    order_id: params.orderId ?? params.rentalCode,
     gross_amount: params.totalAmount,
   },
   customer_details: {

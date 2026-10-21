@@ -1,16 +1,19 @@
 import { prisma } from '../../config/prisma';
-import { AppError, ConflictError, NotFoundError } from '../../common/errors';
+import { AppError, BadRequestError, ConflictError, ForbiddenError, NotFoundError } from '../../common/errors';
 import { DeviceStatus, PaymentGateway, PaymentStatus, RentalStatus } from '../../generated/prisma/enums.js';
 import { snap } from '../../config/midtrans';
 import { env } from '../../config/env';
 import type {
   CreateRentalInput,
+  UpdateRentalInput,
   RentalWithDetailsResponse,
   CustomerDeviceSummary,
+  RentalPaymentSummary,
 } from './rental.dto.js';
 import {
   calculateRentalDurationAndAmount,
   generateRentalCode,
+  generatePaymentId,
   buildSnapTransactionParameter,
 } from './rental.helper';
 
@@ -77,8 +80,11 @@ export class RentalService {
     let snapToken: string;
     let redirectUrl: string;
 
+    const paymentId = generatePaymentId();
+
     try {
       const snapParameter = buildSnapTransactionParameter({
+        orderId: paymentId,
         rentalCode,
         totalAmount: calculation.totalAmount,
         totalDays: calculation.totalDays,
@@ -94,7 +100,6 @@ export class RentalService {
       snapToken = snapResponse.token;
       redirectUrl = snapResponse.redirect_url;
     } catch (error) {
-      console.error('[ERROR] Midtrans Snap transaction creation failed:', error);
       throw new AppError('Payment gateway is currently unavailable. Please try again later', 502);
     }
 
@@ -152,6 +157,7 @@ export class RentalService {
       // Step C: Persist Payment record with pre-acquired snapToken & redirectUrl
       const createdPayment = await tx.payment.create({
         data: {
+          id: paymentId,
           rentalId: createdRental.id,
           amount: calculation.totalAmount,
           gateway: PaymentGateway.MIDTRANS,
@@ -194,6 +200,250 @@ export class RentalService {
       updatedAt: rental.updatedAt,
       device: deviceSummary,
       payment,
+    };
+  }
+
+  /**
+   * Updates an existing rental booking while in PENDING_PAYMENT status.
+   *
+   * Business Rules:
+   * 1. If only destination is modified, updates the rental record directly without touching payment.
+   * 2. If startDate or endDate changes, totalDays and totalAmount are recalculated.
+   *    Because Midtrans Snap tokens are immutable to amount, the previous payment is marked EXPIRED,
+   *    a new Midtrans transaction token is generated outside DB transactions, and an atomic transaction
+   *    persists the updated rental and the new pending payment.
+   */
+  async updateRental(
+    rentalId: string,
+    userId: string,
+    userRole: string,
+    input: UpdateRentalInput
+  ): Promise<RentalWithDetailsResponse> {
+    // 1. Fetch rental record with relations
+    const rental = await prisma.rental.findUnique({
+      where: { id: rentalId },
+      include: {
+        device: true,
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            phone: true,
+          },
+        },
+        payments: {
+          orderBy: { createdAt: 'desc' },
+        },
+      },
+    });
+
+    if (!rental) {
+      throw new NotFoundError('Rental not found');
+    }
+
+    // 2. Authorization check
+    if (rental.userId !== userId && userRole !== 'ADMIN') {
+      throw new ForbiddenError('You do not have permission to update this rental');
+    }
+
+    // 3. Status and expiration check
+    if (rental.status !== RentalStatus.PENDING_PAYMENT) {
+      throw new BadRequestError('Only pending payment rentals can be updated');
+    }
+
+    if (rental.expiresAt && rental.expiresAt.getTime() <= Date.now()) {
+      throw new BadRequestError('Rental booking has expired. Please create a new booking');
+    }
+
+    // 4. Resolve effective dates
+    const effectiveStartDate = input.startDate ? new Date(input.startDate) : rental.startDate;
+    const effectiveEndDate = input.endDate ? new Date(input.endDate) : rental.endDate;
+
+    if (effectiveEndDate.getTime() < effectiveStartDate.getTime()) {
+      throw new BadRequestError('End date must be on or after start date');
+    }
+
+    const isDatesChanged =
+      (input.startDate !== undefined &&
+        effectiveStartDate.toISOString().slice(0, 10) !==
+          rental.startDate.toISOString().slice(0, 10)) ||
+      (input.endDate !== undefined &&
+        effectiveEndDate.toISOString().slice(0, 10) !==
+          rental.endDate.toISOString().slice(0, 10));
+
+    // 5. Scenario A: Dates did not change (only destination update)
+    if (!isDatesChanged) {
+      const updatedRental = await prisma.rental.update({
+        where: { id: rental.id },
+        data: {
+          destination: input.destination ?? rental.destination,
+        },
+        include: {
+          device: true,
+          payments: {
+            orderBy: { createdAt: 'desc' },
+            take: 1,
+          },
+        },
+      });
+
+      const deviceSummary: CustomerDeviceSummary | null = updatedRental.device
+        ? {
+            id: updatedRental.device.id,
+            model: updatedRental.device.model,
+            speed: updatedRental.device.speed,
+            status: updatedRental.device.status,
+          }
+        : null;
+
+      const latestPayment = updatedRental.payments[0] ?? null;
+      const paymentSummary: RentalPaymentSummary | null = latestPayment
+        ? {
+            id: latestPayment.id,
+            amount: latestPayment.amount,
+            status: latestPayment.status,
+            gateway: latestPayment.gateway,
+            snapToken: latestPayment.snapToken,
+            redirectUrl: latestPayment.redirectUrl,
+            expiresAt: latestPayment.expiresAt,
+            createdAt: latestPayment.createdAt,
+          }
+        : null;
+
+      return {
+        id: updatedRental.id,
+        rentalCode: updatedRental.rentalCode,
+        userId: updatedRental.userId,
+        deviceId: updatedRental.deviceId,
+        destination: updatedRental.destination,
+        startDate: updatedRental.startDate,
+        endDate: updatedRental.endDate,
+        totalDays: updatedRental.totalDays,
+        totalAmount: updatedRental.totalAmount,
+        status: updatedRental.status,
+        expiresAt: updatedRental.expiresAt,
+        createdAt: updatedRental.createdAt,
+        updatedAt: updatedRental.updatedAt,
+        device: deviceSummary,
+        payment: paymentSummary,
+      };
+    }
+
+    // 6. Scenario B: Dates changed (Financial recalculation & new payment)
+    if (!rental.device) {
+      throw new BadRequestError('Device not assigned to this rental');
+    }
+
+    const calculation = calculateRentalDurationAndAmount(
+      effectiveStartDate,
+      effectiveEndDate,
+      rental.device.dailyRate
+    );
+
+    const newPaymentId = generatePaymentId();
+
+    const snapPayload = buildSnapTransactionParameter({
+      orderId: newPaymentId,
+      rentalCode: rental.rentalCode,
+      totalAmount: calculation.totalAmount,
+      totalDays: calculation.totalDays,
+      device: {
+        id: rental.device.id,
+        model: rental.device.model,
+      },
+      customer: rental.user,
+      clientUrl: env.CLIENT_URL,
+    });
+
+    let snapResponse: { token: string; redirect_url: string };
+
+    try {
+      snapResponse = await snap.createTransaction(snapPayload);
+    } catch (error: any) {
+      throw new AppError('Payment gateway is currently unavailable. Please try again later', 502);
+    }
+
+    const result = await prisma.$transaction(async (tx) => {
+      // Invalidate existing pending payments
+      await tx.payment.updateMany({
+        where: {
+          rentalId: rental.id,
+          status: PaymentStatus.PENDING,
+        },
+        data: {
+          status: PaymentStatus.EXPIRED,
+        },
+      });
+
+      // Insert new active payment record
+      const newPayment = await tx.payment.create({
+        data: {
+          id: newPaymentId,
+          rentalId: rental.id,
+          amount: calculation.totalAmount,
+          status: PaymentStatus.PENDING,
+          snapToken: snapResponse.token,
+          redirectUrl: snapResponse.redirect_url,
+          expiresAt: calculation.expiresAt,
+        },
+      });
+
+      // Update Rental with new dates, totalDays, totalAmount, and renewed expiresAt
+      const updatedRental = await tx.rental.update({
+        where: { id: rental.id },
+        data: {
+          destination: input.destination ?? rental.destination,
+          startDate: effectiveStartDate,
+          endDate: effectiveEndDate,
+          totalDays: calculation.totalDays,
+          totalAmount: calculation.totalAmount,
+          expiresAt: calculation.expiresAt,
+        },
+        include: {
+          device: true,
+        },
+      });
+
+      return { updatedRental, newPayment };
+    });
+
+    const deviceSummary: CustomerDeviceSummary | null = result.updatedRental.device
+      ? {
+          id: result.updatedRental.device.id,
+          model: result.updatedRental.device.model,
+          speed: result.updatedRental.device.speed,
+          status: result.updatedRental.device.status,
+        }
+      : null;
+
+    const paymentSummary: RentalPaymentSummary = {
+      id: result.newPayment.id,
+      amount: result.newPayment.amount,
+      status: result.newPayment.status,
+      gateway: result.newPayment.gateway,
+      snapToken: result.newPayment.snapToken,
+      redirectUrl: result.newPayment.redirectUrl,
+      expiresAt: result.newPayment.expiresAt,
+      createdAt: result.newPayment.createdAt,
+    };
+
+    return {
+      id: result.updatedRental.id,
+      rentalCode: result.updatedRental.rentalCode,
+      userId: result.updatedRental.userId,
+      deviceId: result.updatedRental.deviceId,
+      destination: result.updatedRental.destination,
+      startDate: result.updatedRental.startDate,
+      endDate: result.updatedRental.endDate,
+      totalDays: result.updatedRental.totalDays,
+      totalAmount: result.updatedRental.totalAmount,
+      status: result.updatedRental.status,
+      expiresAt: result.updatedRental.expiresAt,
+      createdAt: result.updatedRental.createdAt,
+      updatedAt: result.updatedRental.updatedAt,
+      device: deviceSummary,
+      payment: paymentSummary,
     };
   }
 }

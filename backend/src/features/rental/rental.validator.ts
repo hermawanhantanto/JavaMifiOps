@@ -40,3 +40,56 @@ export const createRentalSchema = z
       path: ['endDate'],
     }
   );
+
+export const updateRentalSchema = z
+  .object({
+    destination: z
+      .string()
+      .trim()
+      .min(2, 'Destination must be at least 2 characters')
+      .max(100, 'Destination cannot exceed 100 characters')
+      .optional(),
+    startDate: z.coerce.date().optional(),
+    endDate: z.coerce.date().optional(),
+  })
+  .refine(
+    (data) =>
+      data.destination !== undefined ||
+      data.startDate !== undefined ||
+      data.endDate !== undefined,
+    {
+      message: 'At least one field (destination, startDate, endDate) must be provided for update',
+    }
+  )
+  .refine(
+    (data) => {
+      if (data.startDate) {
+        const today = new Date();
+        today.setUTCHours(0, 0, 0, 0);
+        const start = new Date(data.startDate);
+        start.setUTCHours(0, 0, 0, 0);
+        return start.getTime() >= today.getTime();
+      }
+      return true;
+    },
+    {
+      message: 'Start date cannot be in the past',
+      path: ['startDate'],
+    }
+  )
+  .refine(
+    (data) => {
+      if (data.startDate && data.endDate) {
+        const start = new Date(data.startDate);
+        start.setUTCHours(0, 0, 0, 0);
+        const end = new Date(data.endDate);
+        end.setUTCHours(0, 0, 0, 0);
+        return end.getTime() >= start.getTime();
+      }
+      return true;
+    },
+    {
+      message: 'End date must be on or after start date',
+      path: ['endDate'],
+    }
+  );
