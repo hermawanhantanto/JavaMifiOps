@@ -1,13 +1,19 @@
-import { Link, NavLink } from 'react-router-dom';
+import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { useCurrentUser } from '@/features/auth/hooks/use-current-user';
 
 /**
  * Top navigation bar component.
  * Features JavaMifiRent brand title, Home, Device, Rental nav links,
- * and user display name on the right side.
+ * and user display name with a clean Sign out link on the right side.
  */
 export function Navbar() {
-  const { user, isAuthenticated } = useCurrentUser();
+  const { user, logout, isAuthenticated } = useCurrentUser();
+  const navigate = useNavigate();
+
+  const handleSignOut = () => {
+    logout();
+    navigate('/signin');
+  };
 
   const profileDisplayName = user?.name || user?.email || 'Guest User';
 
@@ -58,16 +64,25 @@ export function Navbar() {
           </nav>
         </div>
 
-        {/* Right: Clean Display Name */}
-        <div className="flex items-center">
+        {/* Right: Clean Display Name & Sign Out Link */}
+        <div className="flex items-center gap-4 text-sm font-medium">
           {isAuthenticated ? (
-            <span className="text-sm font-medium text-foreground">
-              {profileDisplayName}
-            </span>
+            <>
+              <span className="text-foreground">
+                {profileDisplayName}
+              </span>
+              <button
+                type="button"
+                onClick={handleSignOut}
+                className="text-muted-foreground hover:text-destructive transition-colors cursor-pointer bg-transparent border-0 p-0 text-sm font-medium"
+              >
+                Sign out
+              </button>
+            </>
           ) : (
             <Link
               to="/signin"
-              className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+              className="text-muted-foreground hover:text-foreground transition-colors"
             >
               Sign In
             </Link>

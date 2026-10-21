@@ -20,12 +20,9 @@ import { useNavigate } from 'react-router-dom';
 import {
   ArrowLeft,
   ArrowRight,
-  Building2,
-  CreditCard,
   ExternalLink,
   Globe,
   Loader2,
-  Truck,
   Wifi,
 } from 'lucide-react';
 
@@ -257,15 +254,10 @@ function RentalBookingContent({ device, onOpenChange }: RentalBookingContentProp
           </div>
         </div>
 
-        {/* Midtrans & Return Notice */}
-        <div className="rounded-lg border border-border/80 bg-muted/30 p-3 space-y-1.5 text-xs text-muted-foreground">
-          <div className="flex items-center gap-2 font-medium text-foreground">
-            <CreditCard className="size-3.5 text-primary shrink-0" />
-            <span>Midtrans Payment & Return Guarantee</span>
-          </div>
-          <p className="text-[11px] text-muted-foreground pl-5.5">
-            Device is reserved for 30 minutes while completing payment. Returns are processed via 24/7 airport arrival drop box or included prepaid polymailer bag.
-          </p>
+        {/* Checkout & Return Notice */}
+        <div className="flex items-center justify-between text-[11px] text-muted-foreground px-0.5">
+          <span>Reserved for 30 minutes to complete checkout</span>
+          <span>{fulfillmentType === 'AIRPORT_PICKUP' ? 'Return: Airport Drop Box or Courier Hub' : 'Return: Prepaid courier bag included'}</span>
         </div>
 
         {/* Action Buttons */}
@@ -390,57 +382,37 @@ function RentalBookingContent({ device, onOpenChange }: RentalBookingContentProp
         </div>
       </div>
 
-      {/* Fulfillment Mode Selection */}
+      {/* Fulfillment Selection */}
       <div className="space-y-2">
-        <Label className="text-xs font-medium">Device Handover & Return Method</Label>
+        <Label className="text-xs font-medium">Handover Method</Label>
         <div className="grid grid-cols-2 gap-2">
           <button
             type="button"
             onClick={() => setFulfillmentType('AIRPORT_PICKUP')}
-            className={`rounded-lg border p-2.5 text-left text-xs transition-all flex items-start gap-2.5 ${
+            className={`h-9 rounded-md border text-xs font-medium transition-colors ${
               fulfillmentType === 'AIRPORT_PICKUP'
-                ? 'border-primary bg-primary/5 text-foreground font-medium ring-1 ring-primary/20'
-                : 'border-border bg-card text-muted-foreground hover:bg-muted/50'
+                ? 'border-primary bg-primary/10 text-primary font-semibold'
+                : 'border-input bg-background text-muted-foreground hover:bg-muted/50 hover:text-foreground'
             }`}
           >
-            <Building2
-              className={`size-4 shrink-0 mt-0.5 ${
-                fulfillmentType === 'AIRPORT_PICKUP' ? 'text-primary' : 'text-muted-foreground'
-              }`}
-            />
-            <div>
-              <span className="block font-semibold">Airport Counter</span>
-              <span className="text-[11px] text-muted-foreground">Pick up at airport (24/7)</span>
-            </div>
+            Airport Counter (24/7)
           </button>
-
           <button
             type="button"
             onClick={() => setFulfillmentType('HOME_DELIVERY')}
-            className={`rounded-lg border p-2.5 text-left text-xs transition-all flex items-start gap-2.5 ${
+            className={`h-9 rounded-md border text-xs font-medium transition-colors ${
               fulfillmentType === 'HOME_DELIVERY'
-                ? 'border-primary bg-primary/5 text-foreground font-medium ring-1 ring-primary/20'
-                : 'border-border bg-card text-muted-foreground hover:bg-muted/50'
+                ? 'border-primary bg-primary/10 text-primary font-semibold'
+                : 'border-input bg-background text-muted-foreground hover:bg-muted/50 hover:text-foreground'
             }`}
           >
-            <Truck
-              className={`size-4 shrink-0 mt-0.5 ${
-                fulfillmentType === 'HOME_DELIVERY' ? 'text-primary' : 'text-muted-foreground'
-              }`}
-            />
-            <div>
-              <span className="block font-semibold">Home Delivery</span>
-              <span className="text-[11px] text-muted-foreground">Shipped before trip</span>
-            </div>
+            Home Delivery
           </button>
         </div>
 
         {/* Airport Counter Selector */}
         {fulfillmentType === 'AIRPORT_PICKUP' ? (
-          <div className="space-y-1.5 pt-1">
-            <Label htmlFor="pickup-location" className="text-[11px] text-muted-foreground">
-              Select Airport Counter
-            </Label>
+          <div className="space-y-1 pt-0.5">
             <select
               id="pickup-location"
               value={pickupLocation}
@@ -462,21 +434,15 @@ function RentalBookingContent({ device, onOpenChange }: RentalBookingContentProp
             </select>
           </div>
         ) : (
-          <div className="space-y-1.5 pt-1">
-            <Label htmlFor="shipping-address" className="text-[11px] text-muted-foreground">
-              Complete Delivery Address
-            </Label>
+          <div className="space-y-1 pt-0.5">
             <Input
               id="shipping-address"
-              placeholder="e.g. Jl. Sudirman No. 45, Kebayoran Baru, Jakarta Selatan 12190"
+              placeholder="Shipping address (street, city, postal code)"
               value={shippingAddress}
               onChange={(e) => setShippingAddress(e.target.value)}
               className="h-9 text-xs"
               required
             />
-            <span className="text-[11px] text-muted-foreground block">
-              Package arrives 2 days before trip and includes a prepaid polymailer bag for easy return.
-            </span>
           </div>
         )}
       </div>

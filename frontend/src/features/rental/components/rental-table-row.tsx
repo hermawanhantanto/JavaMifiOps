@@ -45,7 +45,7 @@ export function RentalTableRow({ rental, isAdmin }: RentalTableRowProps) {
         <TableCell className="font-medium text-foreground text-sm">
           {userName}
         </TableCell>
-        <TableCell className="font-medium text-foreground text-sm">
+        <TableCell className="text-xs font-medium text-foreground">
           {deviceModel}
         </TableCell>
         <TableCell className="text-sm text-muted-foreground">
@@ -75,7 +75,7 @@ export function RentalTableRow({ rental, isAdmin }: RentalTableRowProps) {
       <TableCell className="font-mono text-xs text-muted-foreground">
         {rental.rentalCode}
       </TableCell>
-      <TableCell className="font-medium text-foreground text-sm">
+      <TableCell className="text-xs font-medium text-foreground">
         {deviceModel}
       </TableCell>
       <TableCell className="text-sm text-muted-foreground">

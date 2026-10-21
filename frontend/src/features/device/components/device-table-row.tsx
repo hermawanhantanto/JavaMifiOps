@@ -30,7 +30,7 @@ export function DeviceTableRow({ device, isAdmin }: DeviceTableRowProps) {
         <TableCell className="font-mono text-xs text-muted-foreground">
           {device.imei ?? '-'}
         </TableCell>
-        <TableCell className="font-medium text-foreground">
+        <TableCell className="text-xs font-medium text-foreground">
           {device.model}
         </TableCell>
         <TableCell>
@@ -54,16 +54,16 @@ export function DeviceTableRow({ device, isAdmin }: DeviceTableRowProps) {
 
   return (
     <TableRow className="transition-colors hover:bg-muted/50">
-      <TableCell className="font-medium text-foreground text-sm">
+      <TableCell className="text-xs font-medium text-foreground">
         {device.model}
       </TableCell>
       <TableCell>
         <DeviceSpeedBadge speed={device.speed} />
       </TableCell>
-      <TableCell className="text-sm">
+      <TableCell className="text-xs">
         {formatBatteryHealth(device.batteryHealth)}
       </TableCell>
-      <TableCell className="text-sm font-medium">
+      <TableCell className="text-xs font-medium">
         {formatDailyRate(device.dailyRate)}
       </TableCell>
       <TableCell className="text-right">
