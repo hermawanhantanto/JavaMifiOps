@@ -5,6 +5,8 @@ import {
   cancelRentalHandler,
   listRentalsHandler,
   getRentalByIdHandler,
+  dispatchRentalHandler,
+  returnRentalHandler,
 } from './rental.handler';
 import { authenticateToken, requireRole } from '../../middlewares/auth.middleware';
 import { Role } from '../../generated/prisma/enums.js';
@@ -72,6 +74,33 @@ rentalRouter.post(
   authenticateToken,
   requireRole(Role.CUSTOMER, Role.ADMIN),
   cancelRentalHandler
+);
+
+/**
+ * Endpoint: POST /api/rental/:id/dispatch
+ * Dispatches a confirmed rental device to the customer.
+ * Transitions Rental from CONFIRMED -> ACTIVE, and Device from BOOKED -> RENTED.
+ * ADMIN only.
+ */
+rentalRouter.post(
+  '/:id/dispatch',
+  authenticateToken,
+  requireRole(Role.ADMIN),
+  dispatchRentalHandler
+);
+
+/**
+ * Endpoint: POST /api/rental/:id/return
+ * Processes device return and check-in inspection.
+ * Transitions Rental from ACTIVE (or OVERDUE) -> RETURNED.
+ * Updates Device to AVAILABLE (or MAINTENANCE / LOST).
+ * ADMIN only.
+ */
+rentalRouter.post(
+  '/:id/return',
+  authenticateToken,
+  requireRole(Role.ADMIN),
+  returnRentalHandler
 );
 
 export default rentalRouter;

@@ -110,3 +110,20 @@ export const listRentalsQuerySchema = z.object({
   userId: z.string().trim().optional(),
   deviceId: z.string().trim().optional(),
 });
+
+export const returnConditionEnum = z.enum(['GOOD', 'DAMAGED', 'LOST'], {
+  errorMap: () => ({
+    message: 'Condition must be one of: GOOD, DAMAGED, LOST',
+  }),
+});
+
+export const returnRentalSchema = z.object({
+  condition: returnConditionEnum.default('GOOD'),
+  batteryHealth: z
+    .number()
+    .int('Battery health must be an integer')
+    .min(0, 'Battery health cannot be negative')
+    .max(100, 'Battery health cannot exceed 100')
+    .optional(),
+  notes: z.string().trim().max(500, 'Notes cannot exceed 500 characters').optional(),
+});

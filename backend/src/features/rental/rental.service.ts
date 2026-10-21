@@ -8,10 +8,12 @@ import type {
   CreateRentalInput,
   UpdateRentalInput,
   ListRentalsQuery,
+  ReturnRentalInput,
   RentalWithDetailsResponse,
   RentalDetails,
   ListRentalsResult,
   CustomerDeviceSummary,
+  AdminDeviceSummary,
   RentalPaymentSummary,
 } from './rental.dto.js';
 import {
@@ -673,6 +675,245 @@ export class RentalService {
         limit: query.limit,
         totalPages: Math.ceil(total / query.limit),
       },
+    };
+  }
+
+  /**
+   * Dispatches a confirmed rental device to the customer.
+   * Transitions Rental from CONFIRMED -> ACTIVE, and Device from BOOKED -> RENTED.
+   * Restricted to ADMIN role.
+   */
+  async dispatchRental(rentalId: string): Promise<RentalWithDetailsResponse> {
+    const rental = await prisma.rental.findUnique({
+      where: { id: rentalId },
+      include: {
+        device: true,
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            phone: true,
+          },
+        },
+        payments: {
+          orderBy: { createdAt: 'desc' },
+        },
+      },
+    });
+
+    if (!rental) {
+      throw new NotFoundError('Rental not found');
+    }
+
+    if (rental.status !== RentalStatus.CONFIRMED) {
+      throw new BadRequestError(
+        `Cannot dispatch rental in ${rental.status} status. Only CONFIRMED rentals can be dispatched`
+      );
+    }
+
+    if (!rental.deviceId || !rental.device) {
+      throw new BadRequestError('Rental has no device assigned for dispatch');
+    }
+
+    const hasPaidPayment = rental.payments.some((p) => p.status === PaymentStatus.PAID);
+    if (!hasPaidPayment) {
+      throw new BadRequestError('Cannot dispatch rental without a verified PAID payment');
+    }
+
+    if (rental.device.status !== DeviceStatus.BOOKED) {
+      throw new ConflictError(
+        `Assigned device is not in BOOKED status (current status: ${rental.device.status})`
+      );
+    }
+
+    const deviceId = rental.deviceId;
+
+    const { updatedRental, updatedDevice } = await prisma.$transaction(async (tx) => {
+      const dev = await tx.device.update({
+        where: { id: deviceId },
+        data: {
+          status: DeviceStatus.RENTED,
+        },
+      });
+
+      const rent = await tx.rental.update({
+        where: { id: rentalId },
+        data: {
+          status: RentalStatus.ACTIVE,
+        },
+      });
+
+      return { updatedRental: rent, updatedDevice: dev };
+    });
+
+    const latestPayment = rental.payments[0] ?? null;
+    const paymentSummary: RentalPaymentSummary | null = latestPayment
+      ? {
+          id: latestPayment.id,
+          amount: latestPayment.amount,
+          status: latestPayment.status,
+          gateway: latestPayment.gateway,
+          snapToken: latestPayment.snapToken,
+          redirectUrl: latestPayment.redirectUrl,
+          expiresAt: latestPayment.expiresAt,
+          createdAt: latestPayment.createdAt,
+        }
+      : null;
+
+    const deviceSummary: AdminDeviceSummary = {
+      id: updatedDevice.id,
+      serialNumber: updatedDevice.serialNumber,
+      imei: updatedDevice.imei,
+      model: updatedDevice.model,
+      speed: updatedDevice.speed,
+      status: updatedDevice.status,
+      batteryHealth: updatedDevice.batteryHealth,
+      dailyRate: updatedDevice.dailyRate,
+    };
+
+    return {
+      id: updatedRental.id,
+      rentalCode: updatedRental.rentalCode,
+      userId: updatedRental.userId,
+      deviceId: updatedRental.deviceId,
+      destination: updatedRental.destination,
+      startDate: updatedRental.startDate,
+      endDate: updatedRental.endDate,
+      totalDays: updatedRental.totalDays,
+      totalAmount: updatedRental.totalAmount,
+      status: updatedRental.status,
+      expiresAt: updatedRental.expiresAt,
+      createdAt: updatedRental.createdAt,
+      updatedAt: updatedRental.updatedAt,
+      device: deviceSummary,
+      payment: paymentSummary,
+      user: rental.user,
+    };
+  }
+
+  /**
+   * Processes the return of a hardware device at the end of a rental trip.
+   * Transitions Rental from ACTIVE (or OVERDUE) -> RETURNED.
+   * Updates Device status:
+   * - GOOD -> AVAILABLE
+   * - DAMAGED -> MAINTENANCE
+   * - LOST -> LOST
+   * Optionally updates Device batteryHealth.
+   * Restricted to ADMIN role.
+   */
+  async returnRental(
+    rentalId: string,
+    input: ReturnRentalInput
+  ): Promise<RentalWithDetailsResponse> {
+    const rental = await prisma.rental.findUnique({
+      where: { id: rentalId },
+      include: {
+        device: true,
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            phone: true,
+          },
+        },
+        payments: {
+          orderBy: { createdAt: 'desc' },
+        },
+      },
+    });
+
+    if (!rental) {
+      throw new NotFoundError('Rental not found');
+    }
+
+    if (rental.status !== RentalStatus.ACTIVE && rental.status !== RentalStatus.OVERDUE) {
+      throw new BadRequestError(
+        `Cannot return rental in ${rental.status} status. Only ACTIVE or OVERDUE rentals can be returned`
+      );
+    }
+
+    if (!rental.deviceId || !rental.device) {
+      throw new BadRequestError('Rental has no device assigned to return');
+    }
+
+    if (rental.device.status !== DeviceStatus.RENTED) {
+      throw new ConflictError(
+        `Assigned device is not in RENTED status (current status: ${rental.device.status})`
+      );
+    }
+
+    const deviceId = rental.deviceId;
+
+    let targetDeviceStatus: DeviceStatus = DeviceStatus.AVAILABLE;
+    if (input.condition === 'DAMAGED') {
+      targetDeviceStatus = DeviceStatus.MAINTENANCE;
+    } else if (input.condition === 'LOST') {
+      targetDeviceStatus = DeviceStatus.LOST;
+    }
+
+    const { updatedRental, updatedDevice } = await prisma.$transaction(async (tx) => {
+      const dev = await tx.device.update({
+        where: { id: deviceId },
+        data: {
+          status: targetDeviceStatus,
+          ...(input.batteryHealth !== undefined ? { batteryHealth: input.batteryHealth } : {}),
+        },
+      });
+
+      const rent = await tx.rental.update({
+        where: { id: rentalId },
+        data: {
+          status: RentalStatus.RETURNED,
+        },
+      });
+
+      return { updatedRental: rent, updatedDevice: dev };
+    });
+
+    const latestPayment = rental.payments[0] ?? null;
+    const paymentSummary: RentalPaymentSummary | null = latestPayment
+      ? {
+          id: latestPayment.id,
+          amount: latestPayment.amount,
+          status: latestPayment.status,
+          gateway: latestPayment.gateway,
+          snapToken: latestPayment.snapToken,
+          redirectUrl: latestPayment.redirectUrl,
+          expiresAt: latestPayment.expiresAt,
+          createdAt: latestPayment.createdAt,
+        }
+      : null;
+
+    const deviceSummary: AdminDeviceSummary = {
+      id: updatedDevice.id,
+      serialNumber: updatedDevice.serialNumber,
+      imei: updatedDevice.imei,
+      model: updatedDevice.model,
+      speed: updatedDevice.speed,
+      status: updatedDevice.status,
+      batteryHealth: updatedDevice.batteryHealth,
+      dailyRate: updatedDevice.dailyRate,
+    };
+
+    return {
+      id: updatedRental.id,
+      rentalCode: updatedRental.rentalCode,
+      userId: updatedRental.userId,
+      deviceId: updatedRental.deviceId,
+      destination: updatedRental.destination,
+      startDate: updatedRental.startDate,
+      endDate: updatedRental.endDate,
+      totalDays: updatedRental.totalDays,
+      totalAmount: updatedRental.totalAmount,
+      status: updatedRental.status,
+      expiresAt: updatedRental.expiresAt,
+      createdAt: updatedRental.createdAt,
+      updatedAt: updatedRental.updatedAt,
+      device: deviceSummary,
+      payment: paymentSummary,
+      user: rental.user,
     };
   }
 }

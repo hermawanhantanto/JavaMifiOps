@@ -3,6 +3,7 @@ import {
   createRentalSchema,
   updateRentalSchema,
   listRentalsQuerySchema,
+  returnRentalSchema,
 } from './rental.validator';
 import { rentalService } from './rental.service';
 import { sendSuccess } from '../../common/response';
@@ -110,6 +111,47 @@ export const listRentalsHandler = async (req: Request, res: Response) => {
   );
 
   return sendSuccess(res, 'Rentals retrieved successfully', result, 200);
+};
+
+/**
+ * Dispatches an assigned device for a CONFIRMED rental booking.
+ * Transitions Rental to ACTIVE and Device to RENTED.
+ * Admin only.
+ */
+export const dispatchRentalHandler = async (req: Request, res: Response) => {
+  if (!req.user) {
+    throw new UnauthorizedError('Authentication required');
+  }
+
+  const rentalId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  if (!rentalId) {
+    throw new BadRequestError('Rental ID is required');
+  }
+
+  const rental = await rentalService.dispatchRental(rentalId);
+
+  return sendSuccess(res, 'Rental device dispatched successfully', { rental }, 200);
+};
+
+/**
+ * Processes the return and inspection of a device for an ACTIVE or OVERDUE rental.
+ * Transitions Rental to RETURNED and Device to AVAILABLE (or MAINTENANCE / LOST).
+ * Admin only.
+ */
+export const returnRentalHandler = async (req: Request, res: Response) => {
+  if (!req.user) {
+    throw new UnauthorizedError('Authentication required');
+  }
+
+  const rentalId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  if (!rentalId) {
+    throw new BadRequestError('Rental ID is required');
+  }
+
+  const validatedInput = returnRentalSchema.parse(req.body ?? {});
+  const rental = await rentalService.returnRental(rentalId, validatedInput);
+
+  return sendSuccess(res, 'Rental device returned successfully', { rental }, 200);
 };
 
 
