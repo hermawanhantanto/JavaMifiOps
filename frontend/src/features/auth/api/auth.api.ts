@@ -5,6 +5,7 @@ import type {
   SignupResponseData,
   SigninFormValues,
   SigninResponseData,
+  AuthUser,
 } from '../types/auth.types';
 
 export const signupApi = async (
@@ -24,5 +25,17 @@ export const signinApi = async (
     '/auth/signin',
     payload
   );
+  return response.data;
+};
+
+export const getMeApi = async (): Promise<ApiResponse<{ user: AuthUser }>> => {
+  const response = await apiClient.get<ApiResponse<{ user: AuthUser }>>('/auth/me');
+  return response.data;
+};
+
+export const updateProfileApi = async (
+  payload: Partial<Pick<AuthUser, 'name' | 'phone' | 'address'>>
+): Promise<ApiResponse<{ user: AuthUser }>> => {
+  const response = await apiClient.patch<ApiResponse<{ user: AuthUser }>>('/auth/profile', payload);
   return response.data;
 };

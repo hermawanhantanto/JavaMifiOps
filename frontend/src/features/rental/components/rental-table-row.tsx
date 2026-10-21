@@ -3,6 +3,7 @@ import type { RentalItem } from '../types/rental.types';
 import { formatRentalCurrency, formatRentalDateRange } from '../utils/rental.mapper';
 import { RentalStatusBadge } from './rental-status-badge';
 import { RentalActions } from './rental-actions';
+import { Building2, Truck } from 'lucide-react';
 
 export interface RentalTableRowProps {
   rental: RentalItem;
@@ -15,6 +16,23 @@ export interface RentalTableRowProps {
 export function RentalTableRow({ rental, isAdmin }: RentalTableRowProps) {
   const deviceModel = rental.device?.model ?? 'Pocket WiFi';
   const formattedDates = formatRentalDateRange(rental.startDate, rental.endDate);
+  const isHomeDelivery = rental.fulfillmentType === 'HOME_DELIVERY';
+
+  const fulfillmentBadge = (
+    <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground whitespace-nowrap">
+      {isHomeDelivery ? (
+        <>
+          <Truck className="size-3.5 text-primary shrink-0" />
+          <span>Home Delivery</span>
+        </>
+      ) : (
+        <>
+          <Building2 className="size-3.5 text-primary shrink-0" />
+          <span>Airport Pickup</span>
+        </>
+      )}
+    </span>
+  );
 
   if (isAdmin) {
     const userName = rental.user?.name || rental.user?.email || '—';
@@ -35,6 +53,9 @@ export function RentalTableRow({ rental, isAdmin }: RentalTableRowProps) {
         </TableCell>
         <TableCell className="text-xs text-muted-foreground">
           {formattedDates}
+        </TableCell>
+        <TableCell>
+          {fulfillmentBadge}
         </TableCell>
         <TableCell className="text-sm font-normal text-foreground">
           {formatRentalCurrency(rental.totalAmount)}
@@ -62,6 +83,9 @@ export function RentalTableRow({ rental, isAdmin }: RentalTableRowProps) {
       </TableCell>
       <TableCell className="text-xs text-muted-foreground">
         {formattedDates}
+      </TableCell>
+      <TableCell>
+        {fulfillmentBadge}
       </TableCell>
       <TableCell className="text-sm font-normal text-foreground">
         {formatRentalCurrency(rental.totalAmount)}

@@ -8,17 +8,35 @@ export type RentalStatus =
   | 'OVERDUE'
   | 'CANCELLED';
 
+export type FulfillmentType = 'AIRPORT_PICKUP' | 'HOME_DELIVERY';
+
 export interface CreateRentalInput {
   deviceId: string;
   destination: string;
   startDate: string;
   endDate: string;
+  fulfillmentType?: FulfillmentType;
+  pickupLocation?: string;
+  shippingAddress?: string;
 }
 
 export interface UpdateRentalInput {
   destination?: string;
   startDate?: string;
   endDate?: string;
+  fulfillmentType?: FulfillmentType;
+  pickupLocation?: string;
+  shippingAddress?: string;
+}
+
+export interface DispatchRentalInput {
+  trackingNumber?: string;
+}
+
+export interface ReturnRentalInput {
+  condition?: 'GOOD' | 'DAMAGED' | 'LOST';
+  batteryHealth?: number;
+  notes?: string;
 }
 
 export interface RentalUserSummary {
@@ -60,6 +78,10 @@ export interface RentalItem {
   totalDays: number;
   totalAmount: number;
   status: RentalStatus | string;
+  fulfillmentType?: FulfillmentType;
+  pickupLocation?: string | null;
+  shippingAddress?: string | null;
+  trackingNumber?: string | null;
   expiresAt: string | null;
   createdAt: string;
   updatedAt: string;

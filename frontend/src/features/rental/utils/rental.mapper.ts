@@ -105,3 +105,17 @@ export function formatRentalDateRange(
 
   return `${startDay} ${startMonth} ${startYear} – ${endDay} ${endMonth} ${endYear}`;
 }
+
+/**
+ * Maps raw backend fulfillment type to human-readable label.
+ */
+export function formatFulfillmentType(type?: string | null): string {
+  switch (type) {
+    case 'AIRPORT_PICKUP':
+      return 'Airport Pickup';
+    case 'HOME_DELIVERY':
+      return 'Home Delivery';
+    default:
+      return type || 'Airport Pickup';
+  }
+}

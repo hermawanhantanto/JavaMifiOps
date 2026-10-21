@@ -3,8 +3,10 @@ import type { ApiResponse } from '@/schemas/api.schema';
 import type {
   CreateRentalInput,
   CreateRentalResponseData,
+  DispatchRentalInput,
   ListRentalsParams,
   ListRentalsResponseData,
+  ReturnRentalInput,
   SingleRentalResponseData,
   UpdateRentalInput,
 } from '../types/rental.types';
@@ -93,6 +95,36 @@ export const cancelRentalApi = async (
 ): Promise<ApiResponse<SingleRentalResponseData>> => {
   const response = await apiClient.post<ApiResponse<SingleRentalResponseData>>(
     `/rental/${id}/cancel`
+  );
+  return response.data;
+};
+
+/**
+ * Dispatches an assigned device for a CONFIRMED rental booking (Admin only).
+ * Transitions Rental to ACTIVE and Device to RENTED.
+ */
+export const dispatchRentalApi = async (
+  id: string,
+  input?: DispatchRentalInput
+): Promise<ApiResponse<SingleRentalResponseData>> => {
+  const response = await apiClient.post<ApiResponse<SingleRentalResponseData>>(
+    `/rental/${id}/dispatch`,
+    input ?? {}
+  );
+  return response.data;
+};
+
+/**
+ * Processes hardware device return inspection (Admin only).
+ * Transitions Rental to RETURNED and Device to AVAILABLE/MAINTENANCE/LOST.
+ */
+export const returnRentalApi = async (
+  id: string,
+  input: ReturnRentalInput
+): Promise<ApiResponse<SingleRentalResponseData>> => {
+  const response = await apiClient.post<ApiResponse<SingleRentalResponseData>>(
+    `/rental/${id}/return`,
+    input
   );
   return response.data;
 };

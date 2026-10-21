@@ -24,7 +24,7 @@ export function RentalTable({
   isAdmin,
   onPageChange,
 }: RentalTableProps) {
-  const columnCount = isAdmin ? 8 : 7;
+  const columnCount = isAdmin ? 9 : 8;
   const currentPage = pagination?.page ?? 1;
   const totalPages = pagination?.totalPages ?? 1;
   const totalItems = pagination?.total ?? 0;

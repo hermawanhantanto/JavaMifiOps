@@ -1,21 +1,13 @@
-import { Link, NavLink, useNavigate } from 'react-router-dom';
-import { User, LogOut } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Link, NavLink } from 'react-router-dom';
 import { useCurrentUser } from '@/features/auth/hooks/use-current-user';
 
 /**
  * Top navigation bar component.
  * Features JavaMifiRent brand title, Home, Device, Rental nav links,
- * and user profile name with auth action on the right side.
+ * and user display name on the right side.
  */
 export function Navbar() {
-  const { user, logout, isAuthenticated } = useCurrentUser();
-  const navigate = useNavigate();
-
-  const handleSignOut = () => {
-    logout();
-    navigate('/signin');
-  };
+  const { user, isAuthenticated } = useCurrentUser();
 
   const profileDisplayName = user?.name || user?.email || 'Guest User';
 
@@ -66,33 +58,24 @@ export function Navbar() {
           </nav>
         </div>
 
-        {/* Right: Profile Name & Action */}
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-muted/60 border border-border text-xs sm:text-sm text-foreground">
-            <User className="size-3.5 sm:size-4 text-muted-foreground" />
-            <span className="font-medium max-w-[140px] sm:max-w-[200px] truncate">
+        {/* Right: Clean Display Name */}
+        <div className="flex items-center">
+          {isAuthenticated ? (
+            <span className="text-sm font-medium text-foreground">
               {profileDisplayName}
             </span>
-          </div>
-
-          {isAuthenticated ? (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleSignOut}
-              className="text-xs text-muted-foreground hover:text-destructive"
-              title="Sign Out"
-            >
-              <LogOut className="size-3.5 mr-1" />
-              <span>Sign Out</span>
-            </Button>
           ) : (
-            <Button asChild variant="outline" size="sm" className="text-xs">
-              <Link to="/signin">Sign In</Link>
-            </Button>
+            <Link
+              to="/signin"
+              className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+            >
+              Sign In
+            </Link>
           )}
         </div>
       </div>
     </header>
   );
 }
+
+export default Navbar;

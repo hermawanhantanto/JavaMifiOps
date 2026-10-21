@@ -12,17 +12,20 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import type { DeviceItem } from '@/features/device/types/device.types';
 import { formatDailyRate, formatDeviceSpeed } from '@/features/device/utils/device.mapper';
-import { formatRentalCurrency } from '../utils/rental.mapper';
+import { formatRentalCurrency, formatFulfillmentType } from '../utils/rental.mapper';
+import type { FulfillmentType } from '../types/rental.types';
 import { useCreateRental } from '../hooks/use-create-rental';
 import { useCurrentUser } from '@/features/auth/hooks/use-current-user';
 import { useNavigate } from 'react-router-dom';
 import {
   ArrowLeft,
   ArrowRight,
+  Building2,
   CreditCard,
   ExternalLink,
   Globe,
   Loader2,
+  Truck,
   Wifi,
 } from 'lucide-react';
 
@@ -65,14 +68,25 @@ interface RentalBookingContentProps {
 
 function RentalBookingContent({ device, onOpenChange }: RentalBookingContentProps) {
   const navigate = useNavigate();
-  const { isAuthenticated } = useCurrentUser();
+  const { user, isAuthenticated } = useCurrentUser();
   const createMutation = useCreateRental();
 
   const [step, setStep] = React.useState<'form' | 'confirm'>('form');
   const [destination, setDestination] = React.useState('');
   const [startDate, setStartDate] = React.useState(getTodayString());
   const [endDate, setEndDate] = React.useState(getTomorrowString());
+  const [fulfillmentType, setFulfillmentType] = React.useState<FulfillmentType>('AIRPORT_PICKUP');
+  const [pickupLocation, setPickupLocation] = React.useState(
+    'Jakarta Soekarno-Hatta (CGK) T3 Departure Gate 1 (24/7)'
+  );
+  const [shippingAddress, setShippingAddress] = React.useState(user?.address || '');
   const [errorMsg, setErrorMsg] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    if (user?.address && !shippingAddress) {
+      setShippingAddress(user.address);
+    }
+  }, [user?.address, shippingAddress]);
 
   const totalDays = calculateInclusiveDays(startDate, endDate);
   const totalAmount = totalDays * device.dailyRate;
@@ -109,6 +123,11 @@ function RentalBookingContent({ device, onOpenChange }: RentalBookingContentProp
       return;
     }
 
+    if (fulfillmentType === 'HOME_DELIVERY' && shippingAddress.trim().length < 5) {
+      setErrorMsg('Please enter a valid shipping address for courier home delivery.');
+      return;
+    }
+
     setStep('confirm');
   };
 
@@ -121,6 +140,9 @@ function RentalBookingContent({ device, onOpenChange }: RentalBookingContentProp
         destination: destination.trim(),
         startDate,
         endDate,
+        fulfillmentType,
+        pickupLocation: fulfillmentType === 'AIRPORT_PICKUP' ? pickupLocation : undefined,
+        shippingAddress: fulfillmentType === 'HOME_DELIVERY' ? shippingAddress.trim() : undefined,
       });
 
       const redirectUrl = response.data?.rental?.payment?.redirectUrl;
@@ -141,7 +163,7 @@ function RentalBookingContent({ device, onOpenChange }: RentalBookingContentProp
         <DialogHeader>
           <DialogTitle>Confirm Booking</DialogTitle>
           <DialogDescription>
-            Review your rental reservation before proceeding to checkout.
+            Review your rental reservation and fulfillment details before proceeding to checkout.
           </DialogDescription>
         </DialogHeader>
 
@@ -153,7 +175,7 @@ function RentalBookingContent({ device, onOpenChange }: RentalBookingContentProp
 
         {/* Booking Summary Card */}
         <div className="rounded-xl border border-border bg-card p-4 space-y-3.5">
-          {/* Device Model with Wifi icon on top, Daily Rate & Speed below */}
+          {/* Device Model */}
           <div className="pb-3 border-b border-border/70 space-y-1.5">
             <div className="flex items-center gap-2.5">
               <div className="size-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary shrink-0">
@@ -204,6 +226,22 @@ function RentalBookingContent({ device, onOpenChange }: RentalBookingContentProp
               </span>
               <span className="font-mono text-foreground">{endDate}</span>
             </div>
+            <div>
+              <span className="text-muted-foreground block text-[11px] mb-0.5">
+                Fulfillment Mode
+              </span>
+              <span className="font-medium text-foreground">
+                {formatFulfillmentType(fulfillmentType)}
+              </span>
+            </div>
+            <div>
+              <span className="text-muted-foreground block text-[11px] mb-0.5">
+                {fulfillmentType === 'AIRPORT_PICKUP' ? 'Counter' : 'Delivery Address'}
+              </span>
+              <span className="font-medium text-foreground text-[11px] break-words">
+                {fulfillmentType === 'AIRPORT_PICKUP' ? pickupLocation : shippingAddress}
+              </span>
+            </div>
           </div>
 
           <div className="border-t border-border/70 pt-3 flex items-baseline justify-between">
@@ -219,19 +257,15 @@ function RentalBookingContent({ device, onOpenChange }: RentalBookingContentProp
           </div>
         </div>
 
-        {/* Midtrans Notice */}
-        <div className="rounded-lg border border-border/80 bg-muted/30 p-3 flex items-center gap-3 text-xs text-muted-foreground">
-          <div className="size-7 rounded-md bg-background border border-border/80 flex items-center justify-center text-primary shrink-0">
-            <CreditCard className="size-3.5" />
+        {/* Midtrans & Return Notice */}
+        <div className="rounded-lg border border-border/80 bg-muted/30 p-3 space-y-1.5 text-xs text-muted-foreground">
+          <div className="flex items-center gap-2 font-medium text-foreground">
+            <CreditCard className="size-3.5 text-primary shrink-0" />
+            <span>Midtrans Payment & Return Guarantee</span>
           </div>
-          <div className="leading-tight">
-            <span className="font-medium text-foreground block text-xs">
-              Midtrans Payment Gateway
-            </span>
-            <span className="text-[11px] text-muted-foreground">
-              Device is reserved for 30 minutes while completing checkout.
-            </span>
-          </div>
+          <p className="text-[11px] text-muted-foreground pl-5.5">
+            Device is reserved for 30 minutes while completing payment. Returns are processed via 24/7 airport arrival drop box or included prepaid polymailer bag.
+          </p>
         </div>
 
         {/* Action Buttons */}
@@ -275,7 +309,7 @@ function RentalBookingContent({ device, onOpenChange }: RentalBookingContentProp
       <DialogHeader>
         <DialogTitle>Rent Pocket WiFi</DialogTitle>
         <DialogDescription>
-          Select your destination and dates to reserve this device.
+          Select your travel destination, rental period, and preferred device handover method.
         </DialogDescription>
       </DialogHeader>
 
@@ -356,11 +390,104 @@ function RentalBookingContent({ device, onOpenChange }: RentalBookingContentProp
         </div>
       </div>
 
+      {/* Fulfillment Mode Selection */}
+      <div className="space-y-2">
+        <Label className="text-xs font-medium">Device Handover & Return Method</Label>
+        <div className="grid grid-cols-2 gap-2">
+          <button
+            type="button"
+            onClick={() => setFulfillmentType('AIRPORT_PICKUP')}
+            className={`rounded-lg border p-2.5 text-left text-xs transition-all flex items-start gap-2.5 ${
+              fulfillmentType === 'AIRPORT_PICKUP'
+                ? 'border-primary bg-primary/5 text-foreground font-medium ring-1 ring-primary/20'
+                : 'border-border bg-card text-muted-foreground hover:bg-muted/50'
+            }`}
+          >
+            <Building2
+              className={`size-4 shrink-0 mt-0.5 ${
+                fulfillmentType === 'AIRPORT_PICKUP' ? 'text-primary' : 'text-muted-foreground'
+              }`}
+            />
+            <div>
+              <span className="block font-semibold">Airport Counter</span>
+              <span className="text-[11px] text-muted-foreground">Pick up at airport (24/7)</span>
+            </div>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setFulfillmentType('HOME_DELIVERY')}
+            className={`rounded-lg border p-2.5 text-left text-xs transition-all flex items-start gap-2.5 ${
+              fulfillmentType === 'HOME_DELIVERY'
+                ? 'border-primary bg-primary/5 text-foreground font-medium ring-1 ring-primary/20'
+                : 'border-border bg-card text-muted-foreground hover:bg-muted/50'
+            }`}
+          >
+            <Truck
+              className={`size-4 shrink-0 mt-0.5 ${
+                fulfillmentType === 'HOME_DELIVERY' ? 'text-primary' : 'text-muted-foreground'
+              }`}
+            />
+            <div>
+              <span className="block font-semibold">Home Delivery</span>
+              <span className="text-[11px] text-muted-foreground">Shipped before trip</span>
+            </div>
+          </button>
+        </div>
+
+        {/* Airport Counter Selector */}
+        {fulfillmentType === 'AIRPORT_PICKUP' ? (
+          <div className="space-y-1.5 pt-1">
+            <Label htmlFor="pickup-location" className="text-[11px] text-muted-foreground">
+              Select Airport Counter
+            </Label>
+            <select
+              id="pickup-location"
+              value={pickupLocation}
+              onChange={(e) => setPickupLocation(e.target.value)}
+              className="w-full h-9 rounded-md border border-input bg-background px-3 py-1 text-xs shadow-xs transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            >
+              <option value="Jakarta Soekarno-Hatta (CGK) T3 Departure Gate 1 (24/7)">
+                Jakarta Soekarno-Hatta (CGK) T3 Departure Gate 1 (24/7)
+              </option>
+              <option value="Jakarta Soekarno-Hatta (CGK) T2 Departure Gate 4 (24/7)">
+                Jakarta Soekarno-Hatta (CGK) T2 Departure Gate 4 (24/7)
+              </option>
+              <option value="Bali I Gusti Ngurah Rai (DPS) Int'l Departure (24/7)">
+                Bali I Gusti Ngurah Rai (DPS) Int'l Departure (24/7)
+              </option>
+              <option value="Surabaya Juanda (SUB) Terminal 2 Departure (24/7)">
+                Surabaya Juanda (SUB) Terminal 2 Departure (24/7)
+              </option>
+            </select>
+          </div>
+        ) : (
+          <div className="space-y-1.5 pt-1">
+            <Label htmlFor="shipping-address" className="text-[11px] text-muted-foreground">
+              Complete Delivery Address
+            </Label>
+            <Input
+              id="shipping-address"
+              placeholder="e.g. Jl. Sudirman No. 45, Kebayoran Baru, Jakarta Selatan 12190"
+              value={shippingAddress}
+              onChange={(e) => setShippingAddress(e.target.value)}
+              className="h-9 text-xs"
+              required
+            />
+            <span className="text-[11px] text-muted-foreground block">
+              Package arrives 2 days before trip and includes a prepaid polymailer bag for easy return.
+            </span>
+          </div>
+        )}
+      </div>
+
       {/* Live Calculation Preview */}
       <div className="rounded-lg border border-border/80 bg-muted/20 p-3 text-xs space-y-1.5">
         <div className="flex justify-between text-muted-foreground">
           <span>Rental Duration:</span>
-          <span className="font-medium text-foreground">{totalDays} day{totalDays > 1 ? 's' : ''}</span>
+          <span className="font-medium text-foreground">
+            {totalDays} day{totalDays > 1 ? 's' : ''}
+          </span>
         </div>
         <div className="flex justify-between text-muted-foreground">
           <span>Daily Rate:</span>
@@ -412,7 +539,7 @@ export function RentalBookingDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[520px] p-6 sm:p-7">
+      <DialogContent className="sm:max-w-[520px] p-6 sm:p-7 max-h-[90vh] overflow-y-auto">
         {open && (
           <RentalBookingContent
             key={device.id}

@@ -12,14 +12,15 @@ export function RentalTableHeader({ isAdmin }: RentalTableHeaderProps) {
     return (
       <TableHeader>
         <TableRow className="hover:bg-transparent">
-          <TableHead className="w-[150px]">Rental Code</TableHead>
-          <TableHead className="min-w-[140px]">User Name</TableHead>
-          <TableHead className="min-w-[130px]">Device Model</TableHead>
-          <TableHead className="min-w-[120px]">Destination</TableHead>
-          <TableHead className="w-[160px]">Dates</TableHead>
-          <TableHead className="w-[120px]">Total Amount</TableHead>
-          <TableHead className="w-[120px]">Status</TableHead>
-          <TableHead className="w-[100px] text-right">Actions</TableHead>
+          <TableHead className="w-[140px]">Rental Code</TableHead>
+          <TableHead className="min-w-[130px]">User Name</TableHead>
+          <TableHead className="min-w-[120px]">Device Model</TableHead>
+          <TableHead className="min-w-[110px]">Destination</TableHead>
+          <TableHead className="w-[150px]">Dates</TableHead>
+          <TableHead className="w-[110px]">Fulfillment</TableHead>
+          <TableHead className="w-[110px]">Total Amount</TableHead>
+          <TableHead className="w-[110px]">Status</TableHead>
+          <TableHead className="w-[110px] text-right">Actions</TableHead>
         </TableRow>
       </TableHeader>
     );
@@ -28,12 +29,13 @@ export function RentalTableHeader({ isAdmin }: RentalTableHeaderProps) {
   return (
     <TableHeader>
       <TableRow className="hover:bg-transparent">
-        <TableHead className="w-[160px]">Rental Code</TableHead>
-        <TableHead className="min-w-[150px]">Device Model</TableHead>
-        <TableHead className="min-w-[140px]">Destination</TableHead>
-        <TableHead className="w-[180px]">Dates</TableHead>
-        <TableHead className="w-[130px]">Total Amount</TableHead>
-        <TableHead className="w-[120px]">Status</TableHead>
+        <TableHead className="w-[150px]">Rental Code</TableHead>
+        <TableHead className="min-w-[140px]">Device Model</TableHead>
+        <TableHead className="min-w-[120px]">Destination</TableHead>
+        <TableHead className="w-[160px]">Dates</TableHead>
+        <TableHead className="w-[120px]">Fulfillment</TableHead>
+        <TableHead className="w-[120px]">Total Amount</TableHead>
+        <TableHead className="w-[110px]">Status</TableHead>
         <TableHead className="w-[100px] text-right">Action</TableHead>
       </TableRow>
     </TableHeader>
