@@ -108,3 +108,16 @@
 - **Strictly Scoped to Feature Module**: Feature DTO files (`src/features/<feature>/<feature>.dto.ts`) must strictly encapsulate only Data Transfer Objects, input types, and response contracts that belong directly to that specific feature.
 - **No Cross-Layer Type Pollution**: Never place types from external modules, cross-cutting concerns, or global middlewares (such as `AuthUserPayload` from `src/middlewares/auth.middleware.ts`) inside a feature's DTO file. Keep middleware and shared infrastructure types encapsulated within their respective middleware files or in `src/common/`.
 - **Clean Separation Between Validators and DTOs**: Validator files (`<feature>.validator.ts`) are strictly dedicated to runtime Zod validation schemas. Static inferred types (`z.infer<typeof ...>`) and service contract interfaces must be defined in `<feature>.dto.ts`.
+
+### 14. Frontend Component Architecture & Modularity Standard
+- **Strict Single-Purpose Components**: Every UI component must have one clearly defined responsibility (e.g., dedicated search input, filter select, table header, table row, status badge, loading skeleton). Never build monolithic multi-hundred-line views.
+- **Feature Domain Encapsulation**: Organize domain features in `src/features/<feature>/` with explicit sub-boundaries:
+  - `components/` for atomic visual parts
+  - `hooks/` for domain state, lifecycle, and data fetching (TanStack Query)
+  - `api/` for network endpoints (`apiClient`)
+  - `types/` for TypeScript DTOs and contracts
+  - `utils/` or `mappers/` for data formatting (e.g. mapping raw enum values to human-readable strings, currency formatters)
+  - `pages/` for top-level route coordinator
+- **Debounced Search Inputs**: Search inputs that query backend endpoints must use debouncing (`useDebounce`) to eliminate unnecessary network requests on every keystroke.
+- **Role-Based UI Rendering**: Adapt column projections and action visibility cleanly based on user role (`ADMIN` vs `CUSTOMER`), avoiding leaky or unauthorized data displays on client screens.
+- **No AI Slop & Professional Formatting**: Strictly prohibit emojis, icons as decorative confetti, or messy inconsistent text. All currency, speed, and status values must be cleanly formatted for human readability (e.g., `4G (150 Mbps)`, `Rp 50.000 / day`, `98%`).
