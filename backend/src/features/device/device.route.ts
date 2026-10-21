@@ -39,7 +39,7 @@ deviceRouter.put('/:id', authenticateToken, requireRole('ADMIN'), updateDeviceHa
 
 /**
  * Endpoint: DELETE /api/device/:id
- * Deletes a brand-new device asset that has no rental or ticket history.
+ * Deletes a brand-new device asset that has no rental history.
  * Allows only users with the ADMIN role.
  */
 deviceRouter.delete('/:id', authenticateToken, requireRole('ADMIN'), deleteDeviceHandler);

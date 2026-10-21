@@ -1,6 +1,7 @@
 import { useMutation } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import type { AxiosError } from 'axios';
+import { toast } from 'sonner';
 import { signupApi } from '../api/auth.api';
 import type {
   SignupFormValues,
@@ -24,10 +25,15 @@ export const useSignup = (options: UseSignupOptions = {}) => {
   >({
     mutationFn: signupApi,
     onSuccess: (data) => {
+      const message = data.message || 'User registered successfully';
+      toast.success(message, {
+        description: 'Please sign in with your new credentials.',
+      });
+
       navigate(onSuccessRedirect, {
         state: {
           signupSuccess: true,
-          message: data.message || 'Registration successful. Please sign in.',
+          message,
         },
       });
     },

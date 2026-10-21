@@ -109,7 +109,7 @@ export function SignUpForm() {
                   disabled={isSubmitting}
                 />
               </FormControl>
-              <FormDescription>
+              <FormDescription className="text-xs font-medium text-destructive">
                 Must start with 62 and be 10-15 digits long
               </FormDescription>
               <FormMessage />

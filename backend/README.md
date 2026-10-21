@@ -1,6 +1,6 @@
-# JavaMifi Backend API
+# JavaMifiRent Backend API
 
-Lightweight backend for the JavaMifi Ops mini-ERP, built with Express 5, TypeScript, Prisma ORM, and PostgreSQL.
+Lightweight backend for the JavaMifiRent operations platform, built with Express 5, TypeScript, Prisma ORM, and PostgreSQL.
 
 ## Tech Stack
 - **Framework**: Express 5.x (`express@^5.0.1`)

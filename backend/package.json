@@ -1,7 +1,7 @@
 {
   "name": "javamifi-backend",
   "version": "1.0.0",
-  "description": "JavaMifi Ops Backend API with Express 5 & TypeScript",
+  "description": "JavaMifiRent Backend API with Express 5 & TypeScript",
   "main": "dist/server.js",
   "scripts": {
     "dev": "tsx watch src/server.ts",

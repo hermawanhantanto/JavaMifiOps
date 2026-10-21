@@ -3,7 +3,6 @@ import {
   Card,
   CardHeader,
   CardTitle,
-  CardDescription,
   CardContent,
   CardFooter,
 } from '@/components/ui/card';
@@ -21,13 +20,10 @@ export function SignInCard() {
 
   return (
     <Card className="w-full shadow-sm border-border bg-card">
-      <CardHeader className="space-y-1 text-center">
+      <CardHeader className="text-center">
         <CardTitle className="text-xl font-semibold tracking-tight">
           Sign In
         </CardTitle>
-        <CardDescription className="text-xs sm:text-sm text-muted-foreground">
-          Enter your email and password to access your account
-        </CardDescription>
       </CardHeader>
 
       <CardContent className="space-y-4">

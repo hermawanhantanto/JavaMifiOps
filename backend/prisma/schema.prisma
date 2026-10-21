@@ -51,28 +51,6 @@ enum PaymentStatus {
   REFUNDED
 }
 
-enum TicketCategory {
-  NO_SIGNAL
-  BATTERY_FAILURE
-  PHYSICAL_DAMAGE
-  LOST_UNIT
-  OTHER
-}
-
-enum TicketPriority {
-  LOW
-  MEDIUM
-  HIGH
-  CRITICAL
-}
-
-enum TicketStatus {
-  OPEN
-  IN_PROGRESS
-  RESOLVED
-  CLOSED
-}
-
 model User {
   id           String    @id @default(cuid())
   email        String    @unique
@@ -81,7 +59,6 @@ model User {
   phone        String?
   role         Role      @default(CUSTOMER)
   rentals      Rental[]
-  tickets      Ticket[]
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
@@ -99,7 +76,6 @@ model Device {
   dailyRate     Decimal      @db.Decimal(12, 2)
   status        DeviceStatus @default(AVAILABLE)
   rentals       Rental[]
-  tickets       Ticket[]
   createdAt     DateTime     @default(now())
   updatedAt     DateTime     @updatedAt
 
@@ -123,7 +99,6 @@ model Rental {
   status      RentalStatus @default(PENDING_PAYMENT)
   expiresAt   DateTime?
   payments    Payment[]
-  tickets     Ticket[]
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
 
@@ -156,33 +131,6 @@ model Payment {
   @@index([status])
   @@index([gatewayRef])
   @@map("payments")
-}
-
-model Ticket {
-  id              String         @id @default(cuid())
-  ticketCode      String         @unique
-  rentalId        String
-  rental          Rental         @relation(fields: [rentalId], references: [id], onDelete: Cascade)
-  deviceId        String?
-  device          Device?        @relation(fields: [deviceId], references: [id], onDelete: SetNull)
-  reporterId      String
-  reporter        User           @relation(fields: [reporterId], references: [id])
-  category        TicketCategory @default(OTHER)
-  priority        TicketPriority @default(MEDIUM)
-  subject         String
-  description     String         @db.Text
-  status          TicketStatus   @default(OPEN)
-  resolutionNotes String?        @db.Text
-  resolvedAt      DateTime?
-  createdAt       DateTime       @default(now())
-  updatedAt       DateTime       @updatedAt
-
-  @@index([rentalId])
-  @@index([deviceId])
-  @@index([reporterId])
-  @@index([status])
-  @@index([priority])
-  @@map("tickets")
 }
 
 model PaymentWebhookLog {

@@ -165,7 +165,6 @@ export class DeviceService {
    * Permanently deletes a brand-new hardware device asset.
    * Enforces business rules:
    * - Prevents deletion if the device has ever been linked to a rental.
-   * - Prevents deletion if the device is linked to issue/maintenance tickets.
    * Devices with historical associations should have their status transitioned to RETIRED instead.
    */
   async deleteDevice(id: string): Promise<void> {
@@ -175,7 +174,6 @@ export class DeviceService {
         _count: {
           select: {
             rentals: true,
-            tickets: true,
           },
         },
       },
@@ -188,12 +186,6 @@ export class DeviceService {
     if (device._count.rentals > 0) {
       throw new BadRequestError(
         'Cannot delete device with rental history. Update status to RETIRED instead'
-      );
-    }
-
-    if (device._count.tickets > 0) {
-      throw new BadRequestError(
-        'Cannot delete device associated with issue tickets. Update status to RETIRED instead'
       );
     }
 
