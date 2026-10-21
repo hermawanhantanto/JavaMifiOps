@@ -5,38 +5,12 @@
       "parameters": {
         "options": {}
       },
-      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
-      "typeVersion": 1.1,
-      "position": [
-        -448,
-        80
-      ],
       "id": "6d858559-c89c-420f-9add-95766c6059c9",
       "name": "When chat message received",
-      "webhookId": "javamifi-chat"
-    },
-    {
-      "parameters": {
-        "updates": [
-          "message"
-        ],
-        "additionalFields": {}
-      },
-      "type": "n8n-nodes-base.telegramTrigger",
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
       "typeVersion": 1.1,
-      "position": [
-        -448,
-        336
-      ],
-      "id": "4115d7bb-1104-476a-8d9e-9716b5d80ccd",
-      "name": "Telegram Trigger",
-      "webhookId": "javamifi-telegram-webhook",
-      "credentials": {
-        "telegramApi": {
-          "id": "7I2BWUUeyDPn6TTj",
-          "name": "Telegram account"
-        }
-      }
+      "position": [-448, 80],
+      "webhookId": "javamifi-chat"
     },
     {
       "parameters": {
@@ -76,14 +50,11 @@
         },
         "options": {}
       },
+      "id": "2fb0d4cf-0fc6-48ee-896f-82aafa0cadf4",
+      "name": "Normalize Channel & Isolate Session",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
-      "position": [
-        -144,
-        160
-      ],
-      "id": "2fb0d4cf-0fc6-48ee-896f-82aafa0cadf4",
-      "name": "Normalize Channel & Isolate Session"
+      "position": [-144, 160]
     },
     {
       "parameters": {
@@ -93,14 +64,28 @@
           "systemMessage": "You are the JavaMifi AI Concierge & Operations Support Agent for JavaMifiRent, an enterprise international travel pocket Wi-Fi rental platform in Indonesia.\n\n### STRICT DATA PRIVACY & SECURITY RULES\n1. You operate on a public/shared channel (Telegram & Web). Never invent or guess another customer's Rental Code.\n2. For read-only booking tracking (`track_rental_booking`), require the customer's unique Rental Code (format: `RENT-YYYYMMDD-XXXXXX`).\n3. For write actions (`update_rental_logistics` or `cancel_unpaid_booking`), you MUST enforce 2-Factor Verification: require BOTH the customer's `rentalCode` AND the exact `email` address registered on their account. If the user has not provided their email yet, politely ask for their account email before calling the update or cancel tool.\n\n### YOUR 4 LIVE ERP CAPABILITIES\n1. **Live Stock & Trip Cost Calculator (`get_available_devices`)**:\n   - Query real-time `AVAILABLE` pocket Wi-Fi routers (4G 150Mbps, 4G 300Mbps, 5G 500Mbps, 5G 1Gbps), battery health, and daily rate in IDR.\n   - Calculate inclusive multi-day trip totals (`days * dailyRate`) and recommend the right tier for solo travelers vs groups/streamers.\n2. **Live Booking Tracking & Midtrans Payment Recovery (`track_rental_booking`)**:\n   - Given a `rentalCode`, check real-time booking status (`PENDING_PAYMENT`, `CONFIRMED`, `ACTIVE`, `RETURNED`, `OVERDUE`, `CANCELLED`).\n   - If status is `PENDING_PAYMENT`, provide the customer with their active Midtrans Snap `redirectUrl` payment link and remind them of the `expiresAt` 30-minute auto-expiration deadline.\n   - If `CONFIRMED` or `ACTIVE`, share their pickup counter (`pickupLocation`) or courier `trackingNumber`.\n3. **Self-Service Fulfillment & Terminal Modification (`update_rental_logistics`)**:\n   - If a customer wants to change their airport pickup terminal (`pickupLocation`), home delivery `shippingAddress`, or switch `fulfillmentType` (`AIRPORT_PICKUP` vs `HOME_DELIVERY`) before dispatch (`PENDING_PAYMENT` or `CONFIRMED`), verify their `rentalCode` + `email` and execute the update.\n4. **Self-Service Unpaid Booking Cancellation (`cancel_unpaid_booking`)**:\n   - If a customer wants to cancel an unpaid (`PENDING_PAYMENT`) booking, verify their `rentalCode` + `email` and call `cancel_unpaid_booking` to void the Midtrans session and release the reserved Wi-Fi unit back to available stock.\n\n### AIRPORT COUNTERS, RETURNS & HARDWARE TROUBLESHOOTING\n- **24/7 Airport Pickup Counters**:\n  - Jakarta Soekarno-Hatta: CGK Terminal 3 (International Departure Gate 1) & CGK Terminal 2 (Departure Gate 4)\n  - Bali Ngurah Rai: DPS International Departure Level 2\n  - Surabaya Juanda: SUB Terminal 2 International Departure\n- **Return Instructions**:\n  - Airport Return: Drop the pouch into the 24/7 JavaMifi Arrival Drop Box before exiting baggage claim/customs.\n  - Courier / Non-Airport Return: Ship via JNE/GoSend/GrabExpress or Indomaret to **JavaMifi Central Return Hub, Jl. Tomang Raya No. 12, Palmerah, Jakarta Barat 11440 (Attn: Return Dept)**.\n- **Hardware Troubleshooting**:\n  - Blinking Red Signal LED: Hold Power + Reset pinhole for 10 seconds to force carrier re-registration.\n  - Slow Speed Abroad: Ensure roaming profile is active and no more than 5 devices are streaming simultaneously.\n\nKeep responses concise, structured, and professional. Format all prices in Indonesian Rupiah (e.g., Rp 75.000 / day)."
         }
       },
+      "id": "c5a9ee55-40f4-4f8d-b63f-78b09e168816",
+      "name": "JavaMifi AI Agent",
       "type": "@n8n/n8n-nodes-langchain.agent",
       "typeVersion": 1.7,
-      "position": [
-        192,
-        160
-      ],
-      "id": "c5a9ee55-40f4-4f8d-b63f-78b09e168816",
-      "name": "JavaMifi AI Agent"
+      "position": [192, 160]
+    },
+    {
+      "parameters": {
+        "model": "deepseek-flash",
+        "options": {}
+      },
+      "id": "85a27d26-2f17-412d-a61c-f88cd1269ae2",
+      "name": "DeepSeek Chat Model1",
+      "type": "@n8n/n8n-nodes-langchain.lmChatDeepSeek",
+      "typeVersion": 1,
+      "position": [-64, 448],
+      "credentials": {
+        "deepSeekApi": {
+          "id": "SOePHt3eNUpDjUwq",
+          "name": "DeepSeek account"
+        }
+      }
     },
     {
       "parameters": {
@@ -108,14 +93,11 @@
         "sessionKey": "={{ $('Normalize Channel & Isolate Session').item.json.sessionId }}",
         "contextWindowLength": 10
       },
+      "id": "0c48b7c2-df3c-4267-995f-5dd814b9068a",
+      "name": "Per-User Isolated Memory",
       "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
       "typeVersion": 1.3,
-      "position": [
-        80,
-        448
-      ],
-      "id": "0c48b7c2-df3c-4267-995f-5dd814b9068a",
-      "name": "Per-User Isolated Memory"
+      "position": [80, 448]
     },
     {
       "parameters": {
@@ -131,14 +113,11 @@
           ]
         }
       },
+      "id": "331062bf-1119-4d7c-9da0-f44661d5ee28",
+      "name": "Tool: Get Available Devices",
       "type": "@n8n/n8n-nodes-langchain.toolHttpRequest",
       "typeVersion": 1.1,
-      "position": [
-        224,
-        448
-      ],
-      "id": "331062bf-1119-4d7c-9da0-f44661d5ee28",
-      "name": "Tool: Get Available Devices"
+      "position": [224, 448]
     },
     {
       "parameters": {
@@ -154,14 +133,11 @@
           ]
         }
       },
+      "id": "66ba82b6-e68c-46c8-b76f-80db56cd68dc",
+      "name": "Tool: Track Booking & Payment Link",
       "type": "@n8n/n8n-nodes-langchain.toolHttpRequest",
       "typeVersion": 1.1,
-      "position": [
-        384,
-        448
-      ],
-      "id": "66ba82b6-e68c-46c8-b76f-80db56cd68dc",
-      "name": "Tool: Track Booking & Payment Link"
+      "position": [384, 448]
     },
     {
       "parameters": {
@@ -178,14 +154,11 @@
           ]
         }
       },
+      "id": "4c9536ec-fc5c-4603-b42b-549f7699b62d",
+      "name": "Tool: Update Pickup or Delivery",
       "type": "@n8n/n8n-nodes-langchain.toolHttpRequest",
       "typeVersion": 1.1,
-      "position": [
-        544,
-        448
-      ],
-      "id": "4c9536ec-fc5c-4603-b42b-549f7699b62d",
-      "name": "Tool: Update Pickup or Delivery"
+      "position": [544, 448]
     },
     {
       "parameters": {
@@ -202,14 +175,11 @@
           ]
         }
       },
+      "id": "c1a79b36-46a0-4ce3-9619-8171a7c5d612",
+      "name": "Tool: Cancel Unpaid Booking",
       "type": "@n8n/n8n-nodes-langchain.toolHttpRequest",
       "typeVersion": 1.1,
-      "position": [
-        720,
-        448
-      ],
-      "id": "c1a79b36-46a0-4ce3-9619-8171a7c5d612",
-      "name": "Tool: Cancel Unpaid Booking"
+      "position": [720, 448]
     },
     {
       "parameters": {
@@ -235,32 +205,38 @@
         },
         "options": {}
       },
+      "id": "589e8177-2132-4f09-b86d-fcc5993c8512",
+      "name": "Is Telegram Channel?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
-      "position": [
-        688,
-        160
-      ],
-      "id": "589e8177-2132-4f09-b86d-fcc5993c8512",
-      "name": "Is Telegram Channel?"
+      "position": [688, 160]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "let t = String($json.output || '');\nt = t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');\nt = t.replace(/^\\s*#{1,6}\\s+(.+)$/gm, '<b>$1</b>');\nt = t.replace(/\\*\\*([^*\\n]+)\\*\\*/g, '<b>$1</b>');\nt = t.replace(/`([^`\\n]+)`/g, '<code>$1</code>');\nt = t.replace(/^\\s*\\|?\\s*:?-{3,}.*$/gm, '');\nt = t.replace(/^---+$/gm, '');\nreturn { json: { text: t.trim() } };"
+      },
+      "id": "e1f6577e-9017-4db3-9404-a46867f9a1cb",
+      "name": "Format Reply for Telegram",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [944, 144]
     },
     {
       "parameters": {
         "chatId": "={{ $('Normalize Channel & Isolate Session').item.json.telegramChatId }}",
-        "text": "={{ $('JavaMifi AI Agent').item.json.output }}",
+        "text": "={{ $json.text }}",
         "additionalFields": {
-          "appendAttribution": false
+          "appendAttribution": false,
+          "parse_mode": "HTML"
         }
       },
-      "type": "n8n-nodes-base.telegram",
-      "typeVersion": 1.2,
-      "position": [
-        960,
-        144
-      ],
       "id": "ba93c28c-2b39-4ce7-9a1a-9eba7f3c0db8",
       "name": "Send Telegram Reply",
-      "webhookId": "c9a4c2a3-0953-4ae5-89f1-db18d74c0601",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [1168, 144],
+      "webhookId": "0bb59c58-79c5-4159-bb79-c6408293a547",
       "credentials": {
         "telegramApi": {
           "id": "7I2BWUUeyDPn6TTj",
@@ -270,21 +246,19 @@
     },
     {
       "parameters": {
-        "model": "deepseek-flash",
-        "options": {}
+        "updates": ["message"],
+        "additionalFields": {}
       },
-      "type": "@n8n/n8n-nodes-langchain.lmChatDeepSeek",
-      "typeVersion": 1,
-      "position": [
-        -64,
-        448
-      ],
-      "id": "85a27d26-2f17-412d-a61c-f88cd1269ae2",
-      "name": "DeepSeek Chat Model1",
+      "id": "4115d7bb-1104-476a-8d9e-9716b5d80ccd",
+      "name": "Telegram Trigger",
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.1,
+      "position": [-448, 336],
+      "webhookId": "6cc9382d-327c-49b9-bded-8ecf6ef573bf",
       "credentials": {
-        "deepSeekApi": {
-          "id": "SOePHt3eNUpDjUwq",
-          "name": "DeepSeek account"
+        "telegramApi": {
+          "id": "7I2BWUUeyDPn6TTj",
+          "name": "Telegram account"
         }
       }
     }
@@ -292,17 +266,6 @@
   "pinData": {},
   "connections": {
     "When chat message received": {
-      "main": [
-        [
-          {
-            "node": "Normalize Channel & Isolate Session",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Telegram Trigger": {
       "main": [
         [
           {
@@ -330,6 +293,17 @@
           {
             "node": "Is Telegram Channel?",
             "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DeepSeek Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "JavaMifi AI Agent",
+            "type": "ai_languageModel",
             "index": 0
           }
         ]
@@ -394,6 +368,17 @@
       "main": [
         [
           {
+            "node": "Format Reply for Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Reply for Telegram": {
+      "main": [
+        [
+          {
             "node": "Send Telegram Reply",
             "type": "main",
             "index": 0
@@ -401,12 +386,12 @@
         ]
       ]
     },
-    "DeepSeek Chat Model1": {
-      "ai_languageModel": [
+    "Telegram Trigger": {
+      "main": [
         [
           {
-            "node": "JavaMifi AI Agent",
-            "type": "ai_languageModel",
+            "node": "Normalize Channel & Isolate Session",
+            "type": "main",
             "index": 0
           }
         ]
@@ -418,7 +403,7 @@
     "executionOrder": "v1",
     "binaryMode": "separate"
   },
-  "versionId": "be8c8a7f-7284-4a0e-9d4f-12c44edadf18",
+  "versionId": "b990880c-f7ad-4521-a4c3-f7df8121e9d5",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "663c71cb2b6487f3888629a7d17650ffc8214c8cacc752d0a82a1977026cc3af"
