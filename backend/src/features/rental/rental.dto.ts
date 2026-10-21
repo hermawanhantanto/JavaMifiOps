@@ -46,3 +46,8 @@ export interface BuildSnapTransactionParams {
   } | null;
   clientUrl: string;
 }
+
+export interface RentalExpirationJobData {
+  rentalId: string;
+}
+

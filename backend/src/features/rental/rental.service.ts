@@ -16,6 +16,7 @@ import {
   generatePaymentId,
   buildSnapTransactionParameter,
 } from './rental.helper';
+import { scheduleRentalExpiration, cancelRentalExpiration } from './rental.queue.js';
 
 /**
  * Rental Service.
@@ -175,6 +176,9 @@ export class RentalService {
         payment: createdPayment,
       };
     });
+
+    // Schedule automated 30-minute expiration job in BullMQ
+    await scheduleRentalExpiration(rental.id);
 
     // 6. Format final response payload outside the transaction
     const deviceSummary: CustomerDeviceSummary = {
@@ -428,6 +432,9 @@ export class RentalService {
       createdAt: result.newPayment.createdAt,
     };
 
+    // Re-schedule automated 30-minute expiration job in BullMQ
+    await scheduleRentalExpiration(result.updatedRental.id);
+
     return {
       id: result.updatedRental.id,
       rentalCode: result.updatedRental.rentalCode,
@@ -575,6 +582,9 @@ export class RentalService {
           createdAt: latestPayment.createdAt,
         }
       : null;
+
+    // Cancel scheduled BullMQ expiration job
+    await cancelRentalExpiration(updatedRental.id);
 
     return {
       id: updatedRental.id,

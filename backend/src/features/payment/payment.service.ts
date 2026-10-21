@@ -4,6 +4,7 @@ import { env } from '../../config/env.js';
 import { BadRequestError, NotFoundError } from '../../common/errors.js';
 import { verifyMidtransSignature, mapMidtransStatus, parsePaidDate } from './payment.helper.js';
 import type { MidtransNotificationPayload, ProcessNotificationResult } from './payment.dto.js';
+import { cancelRentalExpiration } from '../rental/rental.queue.js';
 
 export class PaymentService {
   /**
@@ -192,6 +193,9 @@ export class PaymentService {
         data: { isProcessed: true },
       });
     });
+
+    // Cancel scheduled BullMQ expiration job now that payment has transitioned
+    await cancelRentalExpiration(rental.id);
 
     return {
       orderId: payload.order_id,
