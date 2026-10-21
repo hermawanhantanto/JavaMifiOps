@@ -1,6 +1,8 @@
 import { prisma } from '../../config/prisma';
-import { ConflictError, NotFoundError } from '../../common/errors';
+import { AppError, ConflictError, NotFoundError } from '../../common/errors';
 import { DeviceStatus, PaymentGateway, PaymentStatus, RentalStatus } from '../../generated/prisma/enums.js';
+import { snap } from '../../config/midtrans';
+import { env } from '../../config/env';
 import type {
   CreateRentalInput,
   RentalWithDetailsResponse,
@@ -9,6 +11,7 @@ import type {
 import {
   calculateRentalDurationAndAmount,
   generateRentalCode,
+  buildSnapTransactionParameter,
 } from './rental.helper';
 
 /**
@@ -23,48 +26,113 @@ export class RentalService {
   /**
    * Creates a new rental booking for an authenticated customer.
    *
-   * Business Logic & Concurrency Rules:
-   * 1. Validates that the requested device exists and is currently AVAILABLE.
-   * 2. Executes an atomic Compare-and-Swap (CAS) update on the hardware device to transition its status
-   *    from AVAILABLE to BOOKED, preventing double-booking race conditions between concurrent requests.
-   * 3. Calculates duration in inclusive calendar days and computes authoritative total amount from device daily rate.
-   * 4. Generates a unique, non-guessable rental code.
-   * 5. Sets booking expiration timestamp (expiresAt) to 30 minutes in the future.
-   * 6. Persists initial Payment record with PENDING status.
+   * Architectural & Concurrency Flow:
+   * 1. Read-only pre-flight: Verifies device existence and availability without mutating the database.
+   * 2. Computes rental duration, authoritative total price, and generates a unique rental code.
+   * 3. Calls Midtrans Snap API OUTSIDE any database transaction.
+   *    If Midtrans fails: No database rows have been modified, so the device is never left orphaned or stuck.
+   * 4. Once snapToken and redirectUrl are acquired, executes ONE single atomic ACID transaction:
+   *    - Acquires the atomic Compare-and-Swap (CAS) lock on the device (AVAILABLE -> BOOKED).
+   *    - Inserts the Rental record with its authoritative expiresAt timestamp.
+   *    - Inserts the Payment record with the pre-generated snapToken and redirectUrl.
+   *    If ANY failure occurs in this transaction, PostgreSQL rolls back everything atomically,
+   *    guaranteeing that a device can NEVER be left in BOOKED status without a corresponding Rental and expiresAt.
+   * 5. Formats and returns the standardized response envelope.
    */
   async createRental(userId: string, input: CreateRentalInput): Promise<RentalWithDetailsResponse> {
-    return await prisma.$transaction(async (tx) => {
-      // 1. Verify device existence and fetch authoritative rate with AVAILABLE filter
-      const deviceWhere = {
+    // 1. Read-only pre-flight verification (No database mutations)
+    const device = await prisma.device.findFirst({
+      where: {
         id: input.deviceId,
         status: DeviceStatus.AVAILABLE,
-      };
-      const deviceSelect = {
+      },
+      select: {
         id: true,
         status: true,
         dailyRate: true,
         model: true,
         speed: true,
-      };
+      },
+    });
 
-      const device = await tx.device.findFirst({
-        where: deviceWhere,
-        select: deviceSelect,
+    if (!device) {
+      throw new NotFoundError('Device not found or not available for rental');
+    }
+
+    // 2. Fetch customer contact details for Midtrans checkout parameters
+    const customer = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { name: true, email: true, phone: true },
+    });
+
+    // 3. Authoritative server-side calculations
+    const calculation = calculateRentalDurationAndAmount(
+      input.startDate,
+      input.endDate,
+      device.dailyRate
+    );
+    const rentalCode = generateRentalCode();
+
+    // 4. Generate Midtrans Snap Transaction (Outside DB Transaction - DB is 100% untouched so far)
+    let snapToken: string;
+    let redirectUrl: string;
+
+    try {
+      const snapParameter = buildSnapTransactionParameter({
+        rentalCode,
+        totalAmount: calculation.totalAmount,
+        totalDays: calculation.totalDays,
+        device: {
+          id: device.id,
+          model: device.model,
+        },
+        customer,
+        clientUrl: env.CLIENT_URL,
       });
 
-      if (!device) {
-        throw new NotFoundError('Device not found or not available for rental');
-      }
+      const snapResponse = await snap.createTransaction(snapParameter);
+      snapToken = snapResponse.token;
+      redirectUrl = snapResponse.redirect_url;
+    } catch (error) {
+      console.error('[ERROR] Midtrans Snap transaction creation failed:', error);
+      throw new AppError('Payment gateway is currently unavailable. Please try again later', 502);
+    }
 
-      // 2. Atomic Compare-and-Swap (CAS) lock on device status
-      const casWhere = {
-        id: input.deviceId,
-        status: DeviceStatus.AVAILABLE,
-      };
-      const casData = {
-        status: DeviceStatus.BOOKED,
-      };
+    // 5. Atomic Persistence (Single ACID Transaction: device lock, rental, and payment commit together)
+    const casWhere = {
+      id: input.deviceId,
+      status: DeviceStatus.AVAILABLE,
+    };
+    const casData = {
+      status: DeviceStatus.BOOKED,
+    };
 
+    const rentalData = {
+      rentalCode,
+      userId,
+      deviceId: input.deviceId,
+      destination: input.destination,
+      startDate: input.startDate,
+      endDate: input.endDate,
+      totalDays: calculation.totalDays,
+      totalAmount: calculation.totalAmount,
+      status: RentalStatus.PENDING_PAYMENT,
+      expiresAt: calculation.expiresAt,
+    };
+
+    const paymentSelect = {
+      id: true,
+      amount: true,
+      status: true,
+      gateway: true,
+      snapToken: true,
+      redirectUrl: true,
+      expiresAt: true,
+      createdAt: true,
+    };
+
+    const { rental, payment } = await prisma.$transaction(async (tx) => {
+      // Step A: Atomic Compare-and-Swap lock on device status
       const lockResult = await tx.device.updateMany({
         where: casWhere,
         data: casData,
@@ -76,68 +144,57 @@ export class RentalService {
         );
       }
 
-      // 3. Authoritative server-side calculations
-      const calculation = calculateRentalDurationAndAmount(
-        input.startDate,
-        input.endDate,
-        device.dailyRate
-      );
-      const rentalCode = generateRentalCode();
-
-      // 4. Persist Rental entity
-      const rentalData = {
-        rentalCode,
-        userId,
-        deviceId: input.deviceId,
-        destination: input.destination,
-        startDate: input.startDate,
-        endDate: input.endDate,
-        totalDays: calculation.totalDays,
-        totalAmount: calculation.totalAmount,
-        status: RentalStatus.PENDING_PAYMENT,
-        expiresAt: calculation.expiresAt,
-      };
-
-      const rental = await tx.rental.create({
+      // Step B: Persist Rental record
+      const createdRental = await tx.rental.create({
         data: rentalData,
       });
 
-      // 5. Persist initial Payment record
-      // TODO: Initialize Midtrans Snap Token / Transaction once payment gateway is integrated
-      const paymentData = {
-        rentalId: rental.id,
-        amount: calculation.totalAmount,
-        gateway: PaymentGateway.MIDTRANS,
-        status: PaymentStatus.PENDING,
-        expiresAt: calculation.expiresAt,
-      };
-      const paymentSelect = {
-        id: true,
-        amount: true,
-        status: true,
-        gateway: true,
-        expiresAt: true,
-        createdAt: true,
-      };
-
-      const payment = await tx.payment.create({
-        data: paymentData,
+      // Step C: Persist Payment record with pre-acquired snapToken & redirectUrl
+      const createdPayment = await tx.payment.create({
+        data: {
+          rentalId: createdRental.id,
+          amount: calculation.totalAmount,
+          gateway: PaymentGateway.MIDTRANS,
+          status: PaymentStatus.PENDING,
+          gatewayRef: rentalCode,
+          snapToken,
+          redirectUrl,
+          expiresAt: calculation.expiresAt,
+        },
         select: paymentSelect,
       });
 
-      const deviceSummary: CustomerDeviceSummary = {
-        id: device.id,
-        model: device.model,
-        speed: device.speed,
-        status: DeviceStatus.BOOKED,
-      };
-
       return {
-        ...rental,
-        device: deviceSummary,
-        payment,
+        rental: createdRental,
+        payment: createdPayment,
       };
     });
+
+    // 6. Format final response payload outside the transaction
+    const deviceSummary: CustomerDeviceSummary = {
+      id: device.id,
+      model: device.model,
+      speed: device.speed,
+      status: DeviceStatus.BOOKED,
+    };
+
+    return {
+      id: rental.id,
+      rentalCode: rental.rentalCode,
+      userId: rental.userId,
+      deviceId: rental.deviceId,
+      destination: rental.destination,
+      startDate: rental.startDate,
+      endDate: rental.endDate,
+      totalDays: rental.totalDays,
+      totalAmount: rental.totalAmount,
+      status: rental.status,
+      expiresAt: rental.expiresAt,
+      createdAt: rental.createdAt,
+      updatedAt: rental.updatedAt,
+      device: deviceSummary,
+      payment,
+    };
   }
 }
 

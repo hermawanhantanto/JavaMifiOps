@@ -1,6 +1,6 @@
 import crypto from 'node:crypto';
 import type { Prisma } from '../../generated/prisma/client.js';
-import type { RentalCalculationResult } from './rental.dto.js';
+import type { RentalCalculationResult, BuildSnapTransactionParams } from './rental.dto.js';
 
 /**
  * Calculates rental duration in inclusive calendar days, authoritative total amount,
@@ -52,3 +52,33 @@ export const generateRentalCode = (): string => {
 
   return `RENT-${year}${month}${day}-${randomSuffix}`;
 };
+
+/**
+ * Builds standard transaction parameters for Midtrans Snap hosted checkout.
+ */
+export const buildSnapTransactionParameter = (params: BuildSnapTransactionParams) => ({
+  transaction_details: {
+    order_id: params.rentalCode,
+    gross_amount: params.totalAmount,
+  },
+  customer_details: {
+    first_name: params.customer?.name ?? 'Customer',
+    email: params.customer?.email ?? 'customer@javamifi.com',
+    phone: params.customer?.phone ?? undefined,
+  },
+  item_details: [
+    {
+      id: params.device.id,
+      price: params.totalAmount,
+      quantity: 1,
+      name: `Pocket Wi-Fi (${params.device.model}) - ${params.totalDays} Days`,
+    },
+  ],
+  expiry: {
+    unit: 'minutes',
+    duration: 30,
+  },
+  callbacks: {
+    finish: `${params.clientUrl}/rental`,
+  },
+});

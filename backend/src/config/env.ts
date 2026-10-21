@@ -20,6 +20,16 @@ const envSchema = z.object({
     .string({ required_error: 'JWT_SECRET is required' })
     .min(8, 'JWT_SECRET must be at least 8 characters long for security'),
   JWT_EXPIRES_IN: z.string().default('1d'),
+  MIDTRANS_SERVER_KEY: z
+    .string({ required_error: 'MIDTRANS_SERVER_KEY is required' })
+    .min(1, 'MIDTRANS_SERVER_KEY cannot be empty'),
+  MIDTRANS_CLIENT_KEY: z
+    .string({ required_error: 'MIDTRANS_CLIENT_KEY is required' })
+    .min(1, 'MIDTRANS_CLIENT_KEY cannot be empty'),
+  MIDTRANS_IS_PRODUCTION: z
+    .string()
+    .default('false')
+    .transform((val) => val === 'true'),
 });
 
 const parseEnv = () => {

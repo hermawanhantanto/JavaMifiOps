@@ -14,7 +14,7 @@ export type CustomerDeviceSummary = Pick<Device, 'id' | 'model' | 'speed' | 'sta
 
 export type RentalPaymentSummary = Pick<
   Payment,
-  'id' | 'amount' | 'status' | 'gateway' | 'expiresAt' | 'createdAt'
+  'id' | 'amount' | 'status' | 'gateway' | 'snapToken' | 'redirectUrl' | 'expiresAt' | 'createdAt'
 >;
 
 export interface RentalWithDetailsResponse extends Rental {
@@ -26,4 +26,20 @@ export interface RentalCalculationResult {
   totalDays: number;
   totalAmount: number;
   expiresAt: Date;
+}
+
+export interface BuildSnapTransactionParams {
+  rentalCode: string;
+  totalAmount: number;
+  totalDays: number;
+  device: {
+    id: string;
+    model: string;
+  };
+  customer?: {
+    name?: string | null;
+    email?: string | null;
+    phone?: string | null;
+  } | null;
+  clientUrl: string;
 }
