@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 
 export function HomePage() {
@@ -16,8 +17,12 @@ export function HomePage() {
           <li>Shadcn UI: Initialized with Tailwind CSS v4</li>
         </ul>
         <div className="pt-2 flex gap-2">
-          <Button variant="default">Primary Action</Button>
-          <Button variant="outline">Secondary</Button>
+          <Button asChild variant="default">
+            <Link to="/signup">Go to Sign Up</Link>
+          </Button>
+          <Button asChild variant="outline">
+            <Link to="/signin">Sign In</Link>
+          </Button>
         </div>
       </div>
     </div>
