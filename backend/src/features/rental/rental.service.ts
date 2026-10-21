@@ -1,12 +1,16 @@
+import type { Prisma } from '../../generated/prisma/client.js';
 import { prisma } from '../../config/prisma';
 import { AppError, BadRequestError, ConflictError, ForbiddenError, NotFoundError } from '../../common/errors';
-import { DeviceStatus, PaymentGateway, PaymentStatus, RentalStatus } from '../../generated/prisma/enums.js';
+import { DeviceStatus, PaymentGateway, PaymentStatus, RentalStatus, Role } from '../../generated/prisma/enums.js';
 import { snap } from '../../config/midtrans';
 import { env } from '../../config/env';
 import type {
   CreateRentalInput,
   UpdateRentalInput,
+  ListRentalsQuery,
   RentalWithDetailsResponse,
+  RentalDetails,
+  ListRentalsResult,
   CustomerDeviceSummary,
   RentalPaymentSummary,
 } from './rental.dto.js';
@@ -15,6 +19,8 @@ import {
   generateRentalCode,
   generatePaymentId,
   buildSnapTransactionParameter,
+  buildRentalWhereInput,
+  buildRentalSelect,
 } from './rental.helper';
 import { scheduleRentalExpiration, cancelRentalExpiration } from './rental.queue.js';
 
@@ -602,6 +608,71 @@ export class RentalService {
       updatedAt: updatedRental.updatedAt,
       device: deviceSummary,
       payment: paymentSummary,
+    };
+  }
+
+  /**
+   * Retrieves a single rental by ID.
+   * Customers can strictly only view their own rentals; Admins can view any rental.
+   */
+  async getRentalById(
+    rentalId: string,
+    userId: string,
+    userRole: Role
+  ): Promise<RentalDetails> {
+    const select = buildRentalSelect(userRole);
+    const rental = await prisma.rental.findUnique({
+      where: { id: rentalId },
+      select,
+    });
+
+    if (!rental) {
+      throw new NotFoundError('Rental not found');
+    }
+
+    if (userRole === Role.CUSTOMER && rental.userId !== userId) {
+      throw new ForbiddenError('You do not have permission to view this rental');
+    }
+
+    return rental as unknown as RentalDetails;
+  }
+
+  /**
+   * Retrieves a paginated list of rentals.
+   * Uses prisma.$transaction([findMany, count]) for snapshot read consistency.
+   * Customers only see their own rentals; Admins see all with filtering.
+   * Directly returns database projection without in-memory mapping loops.
+   */
+  async listRentals(
+    query: ListRentalsQuery,
+    userId: string,
+    userRole: Role
+  ): Promise<ListRentalsResult> {
+    const where = buildRentalWhereInput(query, { userId, role: userRole });
+    const select = buildRentalSelect(userRole);
+    const skip = (query.page - 1) * query.limit;
+    const take = query.limit;
+    const orderBy: Prisma.RentalOrderByWithRelationInput = { createdAt: 'desc' };
+
+    const [rentals, total] = await prisma.$transaction([
+      prisma.rental.findMany({
+        where,
+        select,
+        skip,
+        take,
+        orderBy,
+      }),
+      prisma.rental.count({ where }),
+    ]);
+
+    return {
+      rentals: rentals as unknown as RentalDetails[],
+      pagination: {
+        total,
+        page: query.page,
+        limit: query.limit,
+        totalPages: Math.ceil(total / query.limit),
+      },
     };
   }
 }

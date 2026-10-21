@@ -1,6 +1,11 @@
 import crypto from 'node:crypto';
 import type { Prisma } from '../../generated/prisma/client.js';
-import type { RentalCalculationResult, BuildSnapTransactionParams } from './rental.dto.js';
+import { Role } from '../../generated/prisma/enums.js';
+import type {
+  RentalCalculationResult,
+  BuildSnapTransactionParams,
+  ListRentalsQuery,
+} from './rental.dto.js';
 
 /**
  * Calculates rental duration in inclusive calendar days, authoritative total amount,
@@ -96,3 +101,142 @@ export const buildSnapTransactionParameter = (params: BuildSnapTransactionParams
     finish: `${params.clientUrl}/rental`,
   },
 });
+
+/**
+ * Builds a type-safe Prisma WhereInput filter object from list query parameters.
+ * When the caller is a Customer, results are strictly restricted to their own userId.
+ * When the caller is an Admin, they can filter across all users, devices, and search parameters.
+ */
+export const buildRentalWhereInput = (
+  query: ListRentalsQuery,
+  authUser: { userId: string; role: Role }
+): Prisma.RentalWhereInput => {
+  const where: Prisma.RentalWhereInput = {};
+
+  if (authUser.role === Role.CUSTOMER) {
+    where.userId = authUser.userId;
+
+    if (query.status) {
+      where.status = query.status;
+    }
+
+    if (query.destination) {
+      where.destination = { contains: query.destination, mode: 'insensitive' };
+    }
+
+    if (query.search) {
+      where.OR = [
+        { rentalCode: { contains: query.search, mode: 'insensitive' } },
+        { destination: { contains: query.search, mode: 'insensitive' } },
+        { user: { name: { contains: query.search, mode: 'insensitive' } } },
+        { device: { model: { contains: query.search, mode: 'insensitive' } } },
+      ];
+    }
+
+    return where;
+  }
+
+  // Admin role filters
+  if (query.userId) {
+    where.userId = query.userId;
+  }
+
+  if (query.deviceId) {
+    where.deviceId = query.deviceId;
+  }
+
+  if (query.status) {
+    where.status = query.status;
+  }
+
+  if (query.destination) {
+    where.destination = { contains: query.destination, mode: 'insensitive' };
+  }
+
+  if (query.search) {
+    where.OR = [
+      { rentalCode: { contains: query.search, mode: 'insensitive' } },
+      { destination: { contains: query.search, mode: 'insensitive' } },
+      { user: { name: { contains: query.search, mode: 'insensitive' } } },
+      { user: { email: { contains: query.search, mode: 'insensitive' } } },
+      { device: { model: { contains: query.search, mode: 'insensitive' } } },
+      { device: { serialNumber: { contains: query.search, mode: 'insensitive' } } },
+    ];
+  }
+
+  return where;
+};
+
+/**
+ * Builds a Prisma select projection object based on the caller's role.
+ * Conceals sensitive hardware identifiers (serialNumber, IMEI) from CUSTOMER roles.
+ */
+export const buildRentalSelect = (role: Role): Prisma.RentalSelect => {
+  const baseSelect = {
+    id: true,
+    rentalCode: true,
+    userId: true,
+    deviceId: true,
+    destination: true,
+    startDate: true,
+    endDate: true,
+    totalDays: true,
+    totalAmount: true,
+    status: true,
+    expiresAt: true,
+    createdAt: true,
+    updatedAt: true,
+    payments: {
+      orderBy: { createdAt: 'desc' as const },
+      take: 1,
+      select: {
+        id: true,
+        amount: true,
+        status: true,
+        gateway: true,
+        snapToken: true,
+        redirectUrl: true,
+        expiresAt: true,
+        createdAt: true,
+      },
+    },
+  };
+
+  if (role === Role.CUSTOMER) {
+    return {
+      ...baseSelect,
+      device: {
+        select: {
+          id: true,
+          model: true,
+          speed: true,
+          status: true,
+        },
+      },
+    };
+  }
+
+  return {
+    ...baseSelect,
+    user: {
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        phone: true,
+      },
+    },
+    device: {
+      select: {
+        id: true,
+        serialNumber: true,
+        imei: true,
+        model: true,
+        speed: true,
+        status: true,
+        batteryHealth: true,
+        dailyRate: true,
+      },
+    },
+  };
+};

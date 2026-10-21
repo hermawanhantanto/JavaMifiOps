@@ -3,11 +3,37 @@ import {
   createRentalHandler,
   updateRentalHandler,
   cancelRentalHandler,
+  listRentalsHandler,
+  getRentalByIdHandler,
 } from './rental.handler';
 import { authenticateToken, requireRole } from '../../middlewares/auth.middleware';
 import { Role } from '../../generated/prisma/enums.js';
 
 const rentalRouter: Router = Router();
+
+/**
+ * Endpoint: GET /api/rental
+ * Lists rentals with pagination and role-based scoping.
+ * Customers only see their own rentals; Admins can view and filter all.
+ */
+rentalRouter.get(
+  '/',
+  authenticateToken,
+  requireRole(Role.CUSTOMER, Role.ADMIN),
+  listRentalsHandler
+);
+
+/**
+ * Endpoint: GET /api/rental/:id
+ * Retrieves a single rental by ID.
+ * Access is restricted to the booking owner and Admins.
+ */
+rentalRouter.get(
+  '/:id',
+  authenticateToken,
+  requireRole(Role.CUSTOMER, Role.ADMIN),
+  getRentalByIdHandler
+);
 
 /**
  * Endpoint: POST /api/rental

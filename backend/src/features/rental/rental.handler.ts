@@ -1,5 +1,9 @@
 import type { Request, Response } from 'express';
-import { createRentalSchema, updateRentalSchema } from './rental.validator';
+import {
+  createRentalSchema,
+  updateRentalSchema,
+  listRentalsQuerySchema,
+} from './rental.validator';
 import { rentalService } from './rental.service';
 import { sendSuccess } from '../../common/response';
 import { BadRequestError, UnauthorizedError } from '../../common/errors';
@@ -64,6 +68,48 @@ export const cancelRentalHandler = async (req: Request, res: Response) => {
   const rental = await rentalService.cancelRental(rentalId, req.user.userId, req.user.role);
 
   return sendSuccess(res, 'Rental booking cancelled successfully', { rental }, 200);
+};
+
+/**
+ * Retrieves a single rental by ID.
+ * Access is restricted to the booking owner and Admins.
+ */
+export const getRentalByIdHandler = async (req: Request, res: Response) => {
+  if (!req.user) {
+    throw new UnauthorizedError('Authentication required');
+  }
+
+  const rentalId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  if (!rentalId) {
+    throw new BadRequestError('Rental ID is required');
+  }
+
+  const rental = await rentalService.getRentalById(
+    rentalId,
+    req.user.userId,
+    req.user.role
+  );
+
+  return sendSuccess(res, 'Rental retrieved successfully', { rental }, 200);
+};
+
+/**
+ * Lists rentals with pagination, filtering, and role scoping.
+ * Customers are strictly scoped to their own rentals; Admins can view and filter all.
+ */
+export const listRentalsHandler = async (req: Request, res: Response) => {
+  if (!req.user) {
+    throw new UnauthorizedError('Authentication required');
+  }
+
+  const query = listRentalsQuerySchema.parse(req.query);
+  const result = await rentalService.listRentals(
+    query,
+    req.user.userId,
+    req.user.role
+  );
+
+  return sendSuccess(res, 'Rentals retrieved successfully', result, 200);
 };
 
 

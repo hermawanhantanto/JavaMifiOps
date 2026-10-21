@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { RentalStatus } from '../../generated/prisma/enums.js';
 
 export const createRentalSchema = z
   .object({
@@ -93,3 +94,19 @@ export const updateRentalSchema = z
       path: ['endDate'],
     }
   );
+
+export const listRentalsQuerySchema = z.object({
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(1).max(100).default(10),
+  status: z
+    .nativeEnum(RentalStatus, {
+      errorMap: () => ({
+        message: `Status must be one of: ${Object.values(RentalStatus).join(', ')}`,
+      }),
+    })
+    .optional(),
+  search: z.string().trim().optional(),
+  destination: z.string().trim().optional(),
+  userId: z.string().trim().optional(),
+  deviceId: z.string().trim().optional(),
+});

@@ -1,6 +1,10 @@
 import type { z } from 'zod';
-import type { Rental, Payment, Device } from '../../generated/prisma/client.js';
-import type { createRentalSchema, updateRentalSchema } from './rental.validator.js';
+import type { Rental, Payment, Device, User } from '../../generated/prisma/client.js';
+import type {
+  createRentalSchema,
+  updateRentalSchema,
+  listRentalsQuerySchema,
+} from './rental.validator.js';
 
 /**
  * Data Transfer Objects (DTOs) strictly scoped to the Rental Feature Module.
@@ -10,9 +14,18 @@ export type CreateRentalInput = z.infer<typeof createRentalSchema>;
 
 export type UpdateRentalInput = z.infer<typeof updateRentalSchema>;
 
+export type ListRentalsQuery = z.infer<typeof listRentalsQuerySchema>;
+
 export type RentalResponse = Rental;
 
 export type CustomerDeviceSummary = Pick<Device, 'id' | 'model' | 'speed' | 'status'>;
+
+export type AdminDeviceSummary = Pick<
+  Device,
+  'id' | 'serialNumber' | 'imei' | 'model' | 'speed' | 'status' | 'batteryHealth' | 'dailyRate'
+>;
+
+export type RentalUserSummary = Pick<User, 'id' | 'name' | 'email' | 'phone'>;
 
 export type RentalPaymentSummary = Pick<
   Payment,
@@ -20,8 +33,27 @@ export type RentalPaymentSummary = Pick<
 >;
 
 export interface RentalWithDetailsResponse extends Rental {
-  device: CustomerDeviceSummary | null;
+  device: CustomerDeviceSummary | AdminDeviceSummary | null;
   payment: RentalPaymentSummary | null;
+  user?: RentalUserSummary;
+}
+
+export interface RentalDetails extends Rental {
+  device: CustomerDeviceSummary | AdminDeviceSummary | null;
+  payments: RentalPaymentSummary[];
+  user?: RentalUserSummary;
+}
+
+export interface PaginationMeta {
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
+export interface ListRentalsResult {
+  rentals: RentalDetails[];
+  pagination: PaginationMeta;
 }
 
 export interface RentalCalculationResult {
