@@ -19,7 +19,7 @@
             {
               "id": "assign-backend-url",
               "name": "backendBaseUrl",
-              "value": "https://5859-114-10-18-43.ngrok-free.app",
+              "value": "http://localhost:5000",
               "type": "string"
             },
             {
@@ -72,20 +72,14 @@
     },
     {
       "parameters": {
-        "model": "deepseek-flash",
+        "model": "deepseek-chat",
         "options": {}
       },
       "id": "85a27d26-2f17-412d-a61c-f88cd1269ae2",
       "name": "DeepSeek Chat Model1",
       "type": "@n8n/n8n-nodes-langchain.lmChatDeepSeek",
       "typeVersion": 1,
-      "position": [-64, 448],
-      "credentials": {
-        "deepSeekApi": {
-          "id": "SOePHt3eNUpDjUwq",
-          "name": "DeepSeek account"
-        }
-      }
+      "position": [-64, 448]
     },
     {
       "parameters": {
@@ -236,13 +230,7 @@
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
       "position": [1168, 144],
-      "webhookId": "0bb59c58-79c5-4159-bb79-c6408293a547",
-      "credentials": {
-        "telegramApi": {
-          "id": "7I2BWUUeyDPn6TTj",
-          "name": "Telegram account"
-        }
-      }
+      "webhookId": "javamifi-telegram-send"
     },
     {
       "parameters": {
@@ -254,13 +242,7 @@
       "type": "n8n-nodes-base.telegramTrigger",
       "typeVersion": 1.1,
       "position": [-448, 336],
-      "webhookId": "6cc9382d-327c-49b9-bded-8ecf6ef573bf",
-      "credentials": {
-        "telegramApi": {
-          "id": "7I2BWUUeyDPn6TTj",
-          "name": "Telegram account"
-        }
-      }
+      "webhookId": "javamifi-telegram-trigger"
     }
   ],
   "pinData": {},
@@ -402,13 +384,5 @@
   "settings": {
     "executionOrder": "v1",
     "binaryMode": "separate"
-  },
-  "versionId": "b990880c-f7ad-4521-a4c3-f7df8121e9d5",
-  "meta": {
-    "templateCredsSetupCompleted": true,
-    "instanceId": "663c71cb2b6487f3888629a7d17650ffc8214c8cacc752d0a82a1977026cc3af"
-  },
-  "nodeGroups": [],
-  "id": "fAbQXIOVg0huMSPh",
-  "tags": []
+  }
 }
