@@ -48,3 +48,22 @@ export const updateRentalHandler = async (req: Request, res: Response) => {
   return sendSuccess(res, 'Rental updated successfully', { rental }, 200);
 };
 
+/**
+ * Cancels a rental booking in PENDING_PAYMENT status.
+ */
+export const cancelRentalHandler = async (req: Request, res: Response) => {
+  if (!req.user) {
+    throw new UnauthorizedError('Authentication required');
+  }
+
+  const rentalId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  if (!rentalId) {
+    throw new BadRequestError('Rental ID is required');
+  }
+
+  const rental = await rentalService.cancelRental(rentalId, req.user.userId, req.user.role);
+
+  return sendSuccess(res, 'Rental booking cancelled successfully', { rental }, 200);
+};
+
+

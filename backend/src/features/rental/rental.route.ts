@@ -1,5 +1,9 @@
 import { Router } from 'express';
-import { createRentalHandler, updateRentalHandler } from './rental.handler';
+import {
+  createRentalHandler,
+  updateRentalHandler,
+  cancelRentalHandler,
+} from './rental.handler';
 import { authenticateToken, requireRole } from '../../middlewares/auth.middleware';
 import { Role } from '../../generated/prisma/enums.js';
 
@@ -29,6 +33,19 @@ rentalRouter.patch(
   authenticateToken,
   requireRole(Role.CUSTOMER, Role.ADMIN),
   updateRentalHandler
+);
+
+/**
+ * Endpoint: POST /api/rental/:id/cancel
+ * Cancels a rental booking while in PENDING_PAYMENT status.
+ * Releases the reserved hardware device back to AVAILABLE,
+ * expires any pending payment, and performs best-effort cancellation on Midtrans.
+ */
+rentalRouter.post(
+  '/:id/cancel',
+  authenticateToken,
+  requireRole(Role.CUSTOMER, Role.ADMIN),
+  cancelRentalHandler
 );
 
 export default rentalRouter;

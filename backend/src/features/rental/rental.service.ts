@@ -446,6 +446,154 @@ export class RentalService {
       payment: paymentSummary,
     };
   }
+
+  /**
+   * Cancels a rental booking while in PENDING_PAYMENT status.
+   *
+   * Business Rules:
+   * 1. Only owner or ADMIN can cancel.
+   * 2. Only PENDING_PAYMENT rentals can be cancelled.
+   * 3. Atomically updates Rental to CANCELLED, expires pending Payments,
+   *    and releases the reserved Device back to AVAILABLE.
+   * 4. Makes a best-effort call to Midtrans snap.transaction.cancel to close
+   *    any active payment session or virtual account.
+   */
+  async cancelRental(
+    rentalId: string,
+    userId: string,
+    userRole: string
+  ): Promise<RentalWithDetailsResponse> {
+    const rental = await prisma.rental.findUnique({
+      where: { id: rentalId },
+      include: {
+        device: true,
+        payments: {
+          orderBy: { createdAt: 'desc' },
+        },
+      },
+    });
+
+    if (!rental) {
+      throw new NotFoundError('Rental not found');
+    }
+
+    if (rental.userId !== userId && userRole !== 'ADMIN') {
+      throw new ForbiddenError('You do not have permission to cancel this rental');
+    }
+
+    if (rental.status === RentalStatus.CANCELLED) {
+      throw new BadRequestError('Rental booking is already cancelled');
+    }
+
+    if (rental.status !== RentalStatus.PENDING_PAYMENT) {
+      throw new BadRequestError('Only pending payment rentals can be cancelled');
+    }
+
+    const pendingPayment = rental.payments.find((p) => p.status === PaymentStatus.PENDING) ?? null;
+    const deviceId = rental.deviceId;
+
+    // 1. Cancel Midtrans transaction before updating database
+    if (pendingPayment) {
+      try {
+        await (snap as any).transaction?.cancel(pendingPayment.id);
+      } catch (error: any) {
+        const isNotFound =
+          error?.httpStatusCode === 404 ||
+          error?.ApiResponse?.status_code === '404' ||
+          error?.ApiResponse?.status_message?.includes?.('does not exist');
+
+        if (!isNotFound) {
+          throw new AppError(
+            'Payment gateway is currently unavailable. Failed to cancel payment session',
+            502
+          );
+        }
+      }
+    }
+
+    // 2. Atomic state update in database (expire payment, release device, mark rental cancelled)
+    const updatedRental = await prisma.$transaction(async (tx) => {
+      // Step A: Mark pending payments as EXPIRED
+      await tx.payment.updateMany({
+        where: {
+          rentalId: rental.id,
+          status: PaymentStatus.PENDING,
+        },
+        data: {
+          status: PaymentStatus.EXPIRED,
+        },
+      });
+
+      // Step B: Release device back to AVAILABLE
+      if (deviceId) {
+        await tx.device.updateMany({
+          where: {
+            id: deviceId,
+            status: DeviceStatus.BOOKED,
+          },
+          data: {
+            status: DeviceStatus.AVAILABLE,
+          },
+        });
+      }
+
+      // Step C: Mark rental as CANCELLED
+      return tx.rental.update({
+        where: { id: rental.id },
+        data: {
+          status: RentalStatus.CANCELLED,
+        },
+        include: {
+          device: true,
+          payments: {
+            orderBy: { createdAt: 'desc' },
+            take: 1,
+          },
+        },
+      });
+    });
+
+    const deviceSummary: CustomerDeviceSummary | null = updatedRental.device
+      ? {
+          id: updatedRental.device.id,
+          model: updatedRental.device.model,
+          speed: updatedRental.device.speed,
+          status: updatedRental.device.status,
+        }
+      : null;
+
+    const latestPayment = updatedRental.payments[0] ?? null;
+    const paymentSummary: RentalPaymentSummary | null = latestPayment
+      ? {
+          id: latestPayment.id,
+          amount: latestPayment.amount,
+          status: latestPayment.status,
+          gateway: latestPayment.gateway,
+          snapToken: latestPayment.snapToken,
+          redirectUrl: latestPayment.redirectUrl,
+          expiresAt: latestPayment.expiresAt,
+          createdAt: latestPayment.createdAt,
+        }
+      : null;
+
+    return {
+      id: updatedRental.id,
+      rentalCode: updatedRental.rentalCode,
+      userId: updatedRental.userId,
+      deviceId: updatedRental.deviceId,
+      destination: updatedRental.destination,
+      startDate: updatedRental.startDate,
+      endDate: updatedRental.endDate,
+      totalDays: updatedRental.totalDays,
+      totalAmount: updatedRental.totalAmount,
+      status: updatedRental.status,
+      expiresAt: updatedRental.expiresAt,
+      createdAt: updatedRental.createdAt,
+      updatedAt: updatedRental.updatedAt,
+      device: deviceSummary,
+      payment: paymentSummary,
+    };
+  }
 }
 
 export const rentalService = new RentalService();
