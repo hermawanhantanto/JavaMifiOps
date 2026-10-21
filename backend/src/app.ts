@@ -4,6 +4,7 @@ import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
 import authRouter from './features/auth/auth.route';
 import deviceRouter from './features/device/device.route';
+import rentalRouter from './features/rental/rental.route';
 import { errorHandler } from './middlewares/error.middleware';
 import { env } from './config/env';
 
@@ -26,6 +27,9 @@ export const createApp = (): Express => {
 
   // Device inventory routes
   app.use('/api/device', deviceRouter);
+
+  // Rental booking routes
+  app.use('/api/rental', rentalRouter);
 
   // Global error handling middleware (Express 5 async error propagation)
   app.use(errorHandler);
