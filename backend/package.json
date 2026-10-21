@@ -10,9 +10,10 @@
     "typecheck": "tsc --noEmit",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
-    "db:seed": "tsx prisma/seed.ts && tsx prisma/seed-rentals.ts",
+    "db:seed": "tsx prisma/seed.ts && tsx prisma/seed-rentals.ts && tsx prisma/seed-admin.ts",
     "db:seed:devices": "tsx prisma/seed.ts",
-    "db:seed:rentals": "tsx prisma/seed-rentals.ts"
+    "db:seed:rentals": "tsx prisma/seed-rentals.ts",
+    "db:seed:admin": "tsx prisma/seed-admin.ts"
   },
   "keywords": [
     "express",

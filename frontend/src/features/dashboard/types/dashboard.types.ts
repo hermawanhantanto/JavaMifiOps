@@ -17,3 +17,35 @@ export interface CustomerDashboardData {
   error: Error | null;
   refetch: () => void;
 }
+
+export interface AdminDashboardFleetStats {
+  totalDevices: number;
+  availableDevices: number;
+  rentedDevices: number;
+  bookedDevices: number;
+  maintenanceDevices: number;
+  lostDevices: number;
+  retiredDevices: number;
+  utilizationRate: number;
+  avgBatteryHealth: number;
+}
+
+export interface AdminDashboardRentalStats {
+  pendingDispatchCount: number;
+  activeRentalsCount: number;
+  overdueRentalsCount: number;
+  completedRentalsCount: number;
+  pendingPaymentCount: number;
+  totalRevenue: number;
+}
+
+export interface AdminDashboardData {
+  fleetStats: AdminDashboardFleetStats;
+  rentalStats: AdminDashboardRentalStats;
+  actionRequiredRentals: RentalItem[];
+  recentRentals: RentalItem[];
+  isLoading: boolean;
+  isError: boolean;
+  error: Error | null;
+  refetch: () => void;
+}
