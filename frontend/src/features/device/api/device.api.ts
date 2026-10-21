@@ -1,6 +1,11 @@
 import apiClient from '@/lib/axios';
 import type { ApiResponse } from '@/schemas/api.schema';
-import type { ListDevicesParams, ListDevicesData } from '../types/device.types';
+import type {
+  ListDevicesParams,
+  ListDevicesData,
+  UpdateDeviceInput,
+  DeviceItem,
+} from '../types/device.types';
 
 export const getDevicesApi = async (
   params: ListDevicesParams = {}
@@ -19,5 +24,23 @@ export const getDevicesApi = async (
     params: queryParams,
   });
 
+  return response.data;
+};
+
+export const updateDeviceApi = async (
+  id: string,
+  input: UpdateDeviceInput
+): Promise<ApiResponse<{ device: DeviceItem }>> => {
+  const response = await apiClient.put<ApiResponse<{ device: DeviceItem }>>(
+    `/device/${id}`,
+    input
+  );
+  return response.data;
+};
+
+export const deleteDeviceApi = async (
+  id: string
+): Promise<ApiResponse<null>> => {
+  const response = await apiClient.delete<ApiResponse<null>>(`/device/${id}`);
   return response.data;
 };

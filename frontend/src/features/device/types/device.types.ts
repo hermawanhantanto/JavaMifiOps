@@ -44,3 +44,13 @@ export interface ListDevicesParams {
   speed?: DeviceSpeed | 'ALL';
   search?: string;
 }
+
+export interface UpdateDeviceInput {
+  serialNumber?: string;
+  imei?: string;
+  model?: string;
+  batteryHealth?: number;
+  speed?: DeviceSpeed;
+  dailyRate?: number;
+  status?: DeviceStatus;
+}

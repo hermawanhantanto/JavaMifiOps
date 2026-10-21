@@ -25,7 +25,7 @@ export function DeviceTable({
   isAdmin,
   onPageChange,
 }: DeviceTableProps) {
-  const columnCount = isAdmin ? 7 : 4;
+  const columnCount = isAdmin ? 8 : 5;
   const currentPage = pagination?.page ?? 1;
   const totalPages = pagination?.totalPages ?? 1;
   const totalItems = pagination?.total ?? 0;
