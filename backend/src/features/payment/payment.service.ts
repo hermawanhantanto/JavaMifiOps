@@ -3,19 +3,21 @@ import { prisma } from '../../config/prisma.js';
 import { env } from '../../config/env.js';
 import { BadRequestError, NotFoundError } from '../../common/errors.js';
 import { verifyMidtransSignature, mapMidtransStatus, parsePaidDate } from './payment.helper.js';
-import type { MidtransNotificationPayload, ProcessNotificationResult } from './payment.dto.js';
+import type {
+  MidtransNotificationPayload,
+  ProcessNotificationResult,
+  WebhookLogIngestionResult,
+} from './payment.dto.js';
 import { cancelRentalExpiration } from '../rental/rental.queue.js';
 
 export class PaymentService {
   /**
-   * Processes an incoming Midtrans payment webhook notification.
-   * Ensures cryptographic signature verification, idempotency, audit logging,
-   * and atomic state machine transitions across Payment, Rental, and Device.
+   * Verifies the cryptographic SHA-512 signature and persists the audit log entry
+   * in payment_webhook_logs so the HTTP handler can immediately return 200 OK to Midtrans.
    */
-  public async processNotification(
+  public async ingestNotificationLog(
     payload: MidtransNotificationPayload
-  ): Promise<ProcessNotificationResult> {
-    // 1. Verify cryptographic SHA-512 signature from Midtrans
+  ): Promise<WebhookLogIngestionResult> {
     const isSignatureValid = verifyMidtransSignature(
       payload.order_id,
       payload.status_code,
@@ -24,7 +26,6 @@ export class PaymentService {
       payload.signature_key
     );
 
-    // 2. Persist audit log entry in payment_webhook_logs table
     let numericGrossAmount: Prisma.Decimal | null = null;
     if (payload.gross_amount) {
       numericGrossAmount = new Prisma.Decimal(payload.gross_amount);
@@ -45,7 +46,6 @@ export class PaymentService {
       },
     });
 
-    // 3. Reject invalid signature immediately
     if (!isSignatureValid) {
       await prisma.paymentWebhookLog.update({
         where: { id: webhookLog.id },
@@ -55,7 +55,22 @@ export class PaymentService {
       throw new BadRequestError('Invalid payment signature');
     }
 
-    // 4. Resolve associated Payment and Rental records directly by payment primary key
+    return {
+      webhookLogId: webhookLog.id,
+      orderId: payload.order_id,
+      transactionStatus: payload.transaction_status,
+    };
+  }
+
+  /**
+   * Asynchronously processes a verified and logged Midtrans notification in the background
+   * after the HTTP 200 OK response has been returned to Midtrans.
+   */
+  public async processLoggedNotification(
+    webhookLogId: string,
+    payload: MidtransNotificationPayload
+  ): Promise<ProcessNotificationResult> {
+    // 1. Resolve associated Payment and Rental records directly by payment primary key
     const payment = await prisma.payment.findUnique({
       where: { id: payload.order_id },
       include: {
@@ -65,7 +80,7 @@ export class PaymentService {
 
     if (!payment || !payment.rental) {
       await prisma.paymentWebhookLog.update({
-        where: { id: webhookLog.id },
+        where: { id: webhookLogId },
         data: { failureReason: 'Payment or associated rental not found for orderId' },
       });
 
@@ -76,17 +91,17 @@ export class PaymentService {
 
     // Associate payment ID with webhook log
     await prisma.paymentWebhookLog.update({
-      where: { id: webhookLog.id },
+      where: { id: webhookLogId },
       data: { paymentId: payment.id },
     });
 
-    // 5. Map Midtrans notification status to domain state
+    // 2. Map Midtrans notification status to domain state
     const mapped = mapMidtransStatus(payload.transaction_status, payload.fraud_status);
 
-    // 6. Idempotency Check: Payment already reached target state
+    // 3. Idempotency Check: Payment already reached target state
     if (payment.status === mapped.paymentStatus) {
       await prisma.paymentWebhookLog.update({
-        where: { id: webhookLog.id },
+        where: { id: webhookLogId },
         data: {
           isProcessed: true,
           failureReason: 'Skipped duplicate notification; payment already in target state',
@@ -102,14 +117,14 @@ export class PaymentService {
       };
     }
 
-    // 7. Idempotency Check: Conflicting transition for settled payment
+    // 4. Idempotency Check: Conflicting transition for settled payment
     const isSettledPayment = payment.status === 'PAID';
     const isTerminalFailureAttempt =
       mapped.paymentStatus === 'EXPIRED' || mapped.paymentStatus === 'FAILED';
 
     if (isSettledPayment && isTerminalFailureAttempt) {
       await prisma.paymentWebhookLog.update({
-        where: { id: webhookLog.id },
+        where: { id: webhookLogId },
         data: {
           isProcessed: false,
           failureReason: `Conflicting transition: received ${mapped.paymentStatus} for settled PAID payment`,
@@ -125,10 +140,10 @@ export class PaymentService {
       };
     }
 
-    // 8. Idempotency Check: Non-actionable status (e.g. pending notification when already pending)
+    // 5. Idempotency Check: Non-actionable status (e.g. pending notification when already pending)
     if (!mapped.shouldUpdate) {
       await prisma.paymentWebhookLog.update({
-        where: { id: webhookLog.id },
+        where: { id: webhookLogId },
         data: { isProcessed: true },
       });
 
@@ -141,7 +156,7 @@ export class PaymentService {
       };
     }
 
-    // 9. Atomic transactional state transition
+    // 6. Atomic transactional state transition
     const paidAt =
       mapped.paymentStatus === 'PAID'
         ? parsePaidDate(payload.settlement_time, payload.transaction_time)
@@ -152,7 +167,6 @@ export class PaymentService {
     const deviceIdToRelease = rental.deviceId;
     const paymentId = payment.id;
     const rentalId = rental.id;
-    const webhookLogId = webhookLog.id;
 
     await prisma.$transaction(async (tx) => {
       // Update Payment record
@@ -208,4 +222,3 @@ export class PaymentService {
 }
 
 export const paymentService = new PaymentService();
-

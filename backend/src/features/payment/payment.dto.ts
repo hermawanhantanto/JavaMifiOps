@@ -11,6 +11,12 @@ export interface PaymentStatusMappingResult {
   shouldUpdate: boolean;
 }
 
+export interface WebhookLogIngestionResult {
+  webhookLogId: string;
+  orderId: string;
+  transactionStatus: string;
+}
+
 export interface ProcessNotificationResult {
   orderId: string;
   paymentStatus: PaymentStatus;

@@ -5,12 +5,23 @@ import { paymentService } from './payment.service.js';
 
 /**
  * Handles incoming payment notifications from Midtrans.
- * Validates request payload and delegates business logic to paymentService.
+ * Verifies signature and creates the audit log in payment_webhook_logs first,
+ * immediately returns 200 OK to Midtrans so the gateway never waits or times out,
+ * and completes state transitions asynchronously in the background.
  */
 export const handlePaymentNotification = async (req: Request, res: Response) => {
   const validatedPayload = midtransNotificationSchema.parse(req.body);
 
-  const result = await paymentService.processNotification(validatedPayload);
-  
-  return sendSuccess(res, 'Payment notification processed successfully', result, 200);
+  const ingestion = await paymentService.ingestNotificationLog(validatedPayload);
+
+  paymentService
+    .processLoggedNotification(ingestion.webhookLogId, validatedPayload)
+    .catch((error) => {
+      console.error(
+        `[ERROR] Background processing failed for webhookLogId ${ingestion.webhookLogId}:`,
+        error
+      );
+    });
+
+  return sendSuccess(res, 'Payment notification received and logged', ingestion, 200);
 };
