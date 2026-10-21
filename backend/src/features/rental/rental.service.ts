@@ -9,6 +9,7 @@ import type {
   UpdateRentalInput,
   ListRentalsQuery,
   ReturnRentalInput,
+  DispatchRentalInput,
   RentalWithDetailsResponse,
   RentalDetails,
   ListRentalsResult,
@@ -132,6 +133,9 @@ export class RentalService {
       totalAmount: calculation.totalAmount,
       status: RentalStatus.PENDING_PAYMENT,
       expiresAt: calculation.expiresAt,
+      fulfillmentType: input.fulfillmentType,
+      pickupLocation: input.pickupLocation ?? null,
+      shippingAddress: input.shippingAddress ?? null,
     };
 
     const paymentSelect = {
@@ -163,7 +167,15 @@ export class RentalService {
         data: rentalData,
       });
 
-      // Step C: Persist Payment record with pre-acquired snapToken & redirectUrl
+      // Step C: Update customer shipping address if provided
+      if (input.shippingAddress) {
+        await tx.user.update({
+          where: { id: userId },
+          data: { address: input.shippingAddress },
+        });
+      }
+
+      // Step D: Persist Payment record with pre-acquired snapToken & redirectUrl
       const createdPayment = await tx.payment.create({
         data: {
           id: paymentId,
@@ -207,6 +219,10 @@ export class RentalService {
       totalDays: rental.totalDays,
       totalAmount: rental.totalAmount,
       status: rental.status,
+      fulfillmentType: rental.fulfillmentType,
+      pickupLocation: rental.pickupLocation,
+      shippingAddress: rental.shippingAddress,
+      trackingNumber: rental.trackingNumber,
       expiresAt: rental.expiresAt,
       createdAt: rental.createdAt,
       updatedAt: rental.updatedAt,
@@ -284,12 +300,15 @@ export class RentalService {
         effectiveEndDate.toISOString().slice(0, 10) !==
           rental.endDate.toISOString().slice(0, 10));
 
-    // 5. Scenario A: Dates did not change (only destination update)
+    // 5. Scenario A: Dates did not change (only destination or fulfillment update)
     if (!isDatesChanged) {
       const updatedRental = await prisma.rental.update({
         where: { id: rental.id },
         data: {
           destination: input.destination ?? rental.destination,
+          fulfillmentType: input.fulfillmentType ?? rental.fulfillmentType,
+          pickupLocation: input.pickupLocation !== undefined ? input.pickupLocation : rental.pickupLocation,
+          shippingAddress: input.shippingAddress !== undefined ? input.shippingAddress : rental.shippingAddress,
         },
         include: {
           device: true,
@@ -334,6 +353,10 @@ export class RentalService {
         totalDays: updatedRental.totalDays,
         totalAmount: updatedRental.totalAmount,
         status: updatedRental.status,
+        fulfillmentType: updatedRental.fulfillmentType,
+        pickupLocation: updatedRental.pickupLocation,
+        shippingAddress: updatedRental.shippingAddress,
+        trackingNumber: updatedRental.trackingNumber,
         expiresAt: updatedRental.expiresAt,
         createdAt: updatedRental.createdAt,
         updatedAt: updatedRental.updatedAt,
@@ -412,6 +435,9 @@ export class RentalService {
           totalDays: calculation.totalDays,
           totalAmount: calculation.totalAmount,
           expiresAt: calculation.expiresAt,
+          fulfillmentType: input.fulfillmentType ?? rental.fulfillmentType,
+          pickupLocation: input.pickupLocation !== undefined ? input.pickupLocation : rental.pickupLocation,
+          shippingAddress: input.shippingAddress !== undefined ? input.shippingAddress : rental.shippingAddress,
         },
         include: {
           device: true,
@@ -455,6 +481,10 @@ export class RentalService {
       totalDays: result.updatedRental.totalDays,
       totalAmount: result.updatedRental.totalAmount,
       status: result.updatedRental.status,
+      fulfillmentType: result.updatedRental.fulfillmentType,
+      pickupLocation: result.updatedRental.pickupLocation,
+      shippingAddress: result.updatedRental.shippingAddress,
+      trackingNumber: result.updatedRental.trackingNumber,
       expiresAt: result.updatedRental.expiresAt,
       createdAt: result.updatedRental.createdAt,
       updatedAt: result.updatedRental.updatedAt,
@@ -606,6 +636,10 @@ export class RentalService {
       totalDays: updatedRental.totalDays,
       totalAmount: updatedRental.totalAmount,
       status: updatedRental.status,
+      fulfillmentType: updatedRental.fulfillmentType,
+      pickupLocation: updatedRental.pickupLocation,
+      shippingAddress: updatedRental.shippingAddress,
+      trackingNumber: updatedRental.trackingNumber,
       expiresAt: updatedRental.expiresAt,
       createdAt: updatedRental.createdAt,
       updatedAt: updatedRental.updatedAt,
@@ -682,9 +716,13 @@ export class RentalService {
   /**
    * Dispatches a confirmed rental device to the customer.
    * Transitions Rental from CONFIRMED -> ACTIVE, and Device from BOOKED -> RENTED.
+   * Optionally records shipping tracking number for home delivery.
    * Restricted to ADMIN role.
    */
-  async dispatchRental(rentalId: string): Promise<RentalWithDetailsResponse> {
+  async dispatchRental(
+    rentalId: string,
+    input?: DispatchRentalInput
+  ): Promise<RentalWithDetailsResponse> {
     const rental = await prisma.rental.findUnique({
       where: { id: rentalId },
       include: {
@@ -742,6 +780,7 @@ export class RentalService {
         where: { id: rentalId },
         data: {
           status: RentalStatus.ACTIVE,
+          ...(input?.trackingNumber ? { trackingNumber: input.trackingNumber } : {}),
         },
       });
 
@@ -784,6 +823,10 @@ export class RentalService {
       totalDays: updatedRental.totalDays,
       totalAmount: updatedRental.totalAmount,
       status: updatedRental.status,
+      fulfillmentType: updatedRental.fulfillmentType,
+      pickupLocation: updatedRental.pickupLocation,
+      shippingAddress: updatedRental.shippingAddress,
+      trackingNumber: updatedRental.trackingNumber,
       expiresAt: updatedRental.expiresAt,
       createdAt: updatedRental.createdAt,
       updatedAt: updatedRental.updatedAt,
@@ -909,6 +952,10 @@ export class RentalService {
       totalDays: updatedRental.totalDays,
       totalAmount: updatedRental.totalAmount,
       status: updatedRental.status,
+      fulfillmentType: updatedRental.fulfillmentType,
+      pickupLocation: updatedRental.pickupLocation,
+      shippingAddress: updatedRental.shippingAddress,
+      trackingNumber: updatedRental.trackingNumber,
       expiresAt: updatedRental.expiresAt,
       createdAt: updatedRental.createdAt,
       updatedAt: updatedRental.updatedAt,

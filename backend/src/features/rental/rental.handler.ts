@@ -4,6 +4,7 @@ import {
   updateRentalSchema,
   listRentalsQuerySchema,
   returnRentalSchema,
+  dispatchRentalSchema,
 } from './rental.validator';
 import { rentalService } from './rental.service';
 import { sendSuccess } from '../../common/response';
@@ -128,7 +129,8 @@ export const dispatchRentalHandler = async (req: Request, res: Response) => {
     throw new BadRequestError('Rental ID is required');
   }
 
-  const rental = await rentalService.dispatchRental(rentalId);
+  const validatedInput = dispatchRentalSchema.parse(req.body ?? {});
+  const rental = await rentalService.dispatchRental(rentalId, validatedInput);
 
   return sendSuccess(res, 'Rental device dispatched successfully', { rental }, 200);
 };

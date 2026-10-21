@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { RentalStatus } from '../../generated/prisma/enums.js';
+import { RentalStatus, FulfillmentType } from '../../generated/prisma/enums.js';
 
 export const createRentalSchema = z
   .object({
@@ -14,6 +14,9 @@ export const createRentalSchema = z
       .max(100, 'Destination cannot exceed 100 characters'),
     startDate: z.coerce.date({ required_error: 'Start date is required' }),
     endDate: z.coerce.date({ required_error: 'End date is required' }),
+    fulfillmentType: z.nativeEnum(FulfillmentType).default(FulfillmentType.AIRPORT_PICKUP),
+    pickupLocation: z.string().trim().max(100, 'Pickup location cannot exceed 100 characters').optional(),
+    shippingAddress: z.string().trim().max(500, 'Shipping address cannot exceed 500 characters').optional(),
   })
   .refine(
     (data) => {
@@ -52,14 +55,20 @@ export const updateRentalSchema = z
       .optional(),
     startDate: z.coerce.date().optional(),
     endDate: z.coerce.date().optional(),
+    fulfillmentType: z.nativeEnum(FulfillmentType).optional(),
+    pickupLocation: z.string().trim().max(100, 'Pickup location cannot exceed 100 characters').optional(),
+    shippingAddress: z.string().trim().max(500, 'Shipping address cannot exceed 500 characters').optional(),
   })
   .refine(
     (data) =>
       data.destination !== undefined ||
       data.startDate !== undefined ||
-      data.endDate !== undefined,
+      data.endDate !== undefined ||
+      data.fulfillmentType !== undefined ||
+      data.pickupLocation !== undefined ||
+      data.shippingAddress !== undefined,
     {
-      message: 'At least one field (destination, startDate, endDate) must be provided for update',
+      message: 'At least one field must be provided for update',
     }
   )
   .refine(
@@ -126,4 +135,8 @@ export const returnRentalSchema = z.object({
     .max(100, 'Battery health cannot exceed 100')
     .optional(),
   notes: z.string().trim().max(500, 'Notes cannot exceed 500 characters').optional(),
+});
+
+export const dispatchRentalSchema = z.object({
+  trackingNumber: z.string().trim().max(100, 'Tracking number cannot exceed 100 characters').optional(),
 });

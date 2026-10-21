@@ -5,6 +5,7 @@ import type {
   updateRentalSchema,
   listRentalsQuerySchema,
   returnRentalSchema,
+  dispatchRentalSchema,
 } from './rental.validator.js';
 
 /**
@@ -18,6 +19,8 @@ export type UpdateRentalInput = z.infer<typeof updateRentalSchema>;
 export type ListRentalsQuery = z.infer<typeof listRentalsQuerySchema>;
 
 export type ReturnRentalInput = z.infer<typeof returnRentalSchema>;
+
+export type DispatchRentalInput = z.infer<typeof dispatchRentalSchema>;
 
 export type RentalResponse = Rental;
 

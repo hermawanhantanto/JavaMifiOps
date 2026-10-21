@@ -51,12 +51,18 @@ enum PaymentStatus {
   REFUNDED
 }
 
+enum FulfillmentType {
+  AIRPORT_PICKUP
+  HOME_DELIVERY
+}
+
 model User {
   id           String    @id @default(cuid())
   email        String    @unique
   name         String
   passwordHash String
   phone        String?
+  address      String?
   role         Role      @default(CUSTOMER)
   rentals      Rental[]
   createdAt    DateTime  @default(now())
@@ -85,26 +91,31 @@ model Device {
 }
 
 model Rental {
-  id          String       @id @default(cuid())
-  rentalCode  String       @unique
-  userId      String
-  user        User         @relation(fields: [userId], references: [id])
-  deviceId    String?
-  device      Device?      @relation(fields: [deviceId], references: [id], onDelete: SetNull)
-  destination String
-  startDate   DateTime
-  endDate     DateTime
-  totalDays   Int
-  totalAmount Decimal      @db.Decimal(12, 2)
-  status      RentalStatus @default(PENDING_PAYMENT)
-  expiresAt   DateTime?
-  payments    Payment[]
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
+  id              String          @id @default(cuid())
+  rentalCode      String          @unique
+  userId          String
+  user            User            @relation(fields: [userId], references: [id])
+  deviceId        String?
+  device          Device?         @relation(fields: [deviceId], references: [id], onDelete: SetNull)
+  destination     String
+  startDate       DateTime
+  endDate         DateTime
+  totalDays       Int
+  totalAmount     Decimal         @db.Decimal(12, 2)
+  status          RentalStatus    @default(PENDING_PAYMENT)
+  fulfillmentType FulfillmentType @default(AIRPORT_PICKUP)
+  pickupLocation  String?
+  shippingAddress String?
+  trackingNumber  String?
+  expiresAt       DateTime?
+  payments        Payment[]
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
 
   @@index([userId])
   @@index([deviceId])
   @@index([status])
+  @@index([fulfillmentType])
   @@index([expiresAt])
   @@index([startDate, endDate])
   @@map("rentals")

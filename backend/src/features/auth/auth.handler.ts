@@ -1,7 +1,8 @@
 import type { Request, Response, CookieOptions } from 'express';
-import { signupSchema, signinSchema } from './auth.validator';
+import { signupSchema, signinSchema, updateProfileSchema } from './auth.validator';
 import { authService } from './auth.service';
 import { sendSuccess } from '../../common/response';
+import { UnauthorizedError } from '../../common/errors';
 import { env } from '../../config/env';
 
 export const AUTH_COOKIE_NAME = 'token';
@@ -62,4 +63,29 @@ export const signinHandler = async (req: Request, res: Response) => {
 export const signoutHandler = async (req: Request, res: Response) => {
   res.clearCookie(AUTH_COOKIE_NAME, CLEAR_COOKIE_OPTIONS);
   return sendSuccess(res, 'Logged out successfully', null, 200);
+};
+
+/**
+ * Retrieves authenticated user profile.
+ */
+export const getMeHandler = async (req: Request, res: Response) => {
+  if (!req.user) {
+    throw new UnauthorizedError('Authentication required');
+  }
+
+  const user = await authService.getMe(req.user.userId);
+  return sendSuccess(res, 'User profile retrieved successfully', { user }, 200);
+};
+
+/**
+ * Updates authenticated user profile (name, phone, address).
+ */
+export const updateProfileHandler = async (req: Request, res: Response) => {
+  if (!req.user) {
+    throw new UnauthorizedError('Authentication required');
+  }
+
+  const validatedData = updateProfileSchema.parse(req.body);
+  const user = await authService.updateProfile(req.user.userId, validatedData);
+  return sendSuccess(res, 'Profile updated successfully', { user }, 200);
 };

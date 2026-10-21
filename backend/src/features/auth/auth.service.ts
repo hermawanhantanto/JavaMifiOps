@@ -2,8 +2,14 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { prisma } from '../../config/prisma';
 import { env } from '../../config/env';
-import { ConflictError, UnauthorizedError } from '../../common/errors';
-import type { SignupInput, SigninInput, SigninResult, UserResponse } from './auth.dto.js';
+import { ConflictError, NotFoundError, UnauthorizedError } from '../../common/errors';
+import type {
+  SignupInput,
+  SigninInput,
+  SigninResult,
+  UpdateProfileInput,
+  UserResponse,
+} from './auth.dto.js';
 
 export class AuthService {
   /**
@@ -37,6 +43,7 @@ export class AuthService {
         name: true,
         email: true,
         phone: true,
+        address: true,
         role: true,
         createdAt: true,
         updatedAt: true,
@@ -88,12 +95,64 @@ export class AuthService {
         name: user.name,
         email: user.email,
         phone: user.phone,
+        address: user.address,
         role: user.role,
         createdAt: user.createdAt,
         updatedAt: user.updatedAt,
       },
       token,
     };
+  }
+
+  /**
+   * Retrieves profile details for the authenticated user.
+   */
+  async getMe(userId: string): Promise<UserResponse> {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        phone: true,
+        address: true,
+        role: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
+
+    if (!user) {
+      throw new NotFoundError('User not found');
+    }
+
+    return user;
+  }
+
+  /**
+   * Updates profile details (name, phone, address) for the authenticated user.
+   */
+  async updateProfile(userId: string, input: UpdateProfileInput): Promise<UserResponse> {
+    const user = await prisma.user.update({
+      where: { id: userId },
+      data: {
+        ...(input.name !== undefined ? { name: input.name } : {}),
+        ...(input.phone !== undefined ? { phone: input.phone } : {}),
+        ...(input.address !== undefined ? { address: input.address } : {}),
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        phone: true,
+        address: true,
+        role: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
+
+    return user;
   }
 }
 

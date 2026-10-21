@@ -40,3 +40,22 @@ export const signinSchema = z.object({
     .string({ required_error: 'Password is required' })
     .min(1, 'Password is required'),
 });
+
+export const updateProfileSchema = z
+  .object({
+    name: z.string().trim().min(2, 'Name must be at least 2 characters').max(100).optional(),
+    phone: z
+      .string()
+      .trim()
+      .regex(/^62\d+$/, "Phone number must start strictly with '62' and contain only numeric digits")
+      .min(10, 'Phone number must be at least 10 digits long')
+      .max(15, 'Phone number cannot exceed 15 digits')
+      .optional(),
+    address: z.string().trim().max(500, 'Address cannot exceed 500 characters').optional(),
+  })
+  .refine(
+    (data) => data.name !== undefined || data.phone !== undefined || data.address !== undefined,
+    {
+      message: 'At least one field must be provided for update',
+    }
+  );
